@@ -18,6 +18,106 @@ sensor.bomba_de_circulacao_de_agua_quente_potencia  # Watts em tempo real
 sensor.bomba_de_circulacao_de_agua_quente_summation_delivered  # kWh total
 ```
 
+## INTERFACE DASHBOARD (v2.1)
+
+### Estrutura do Card Principal
+```yaml
+vertical-stack:
+  1. Status + Gauge                    # Mantido
+  2. Controles (7 botões)              # +3 novos botões
+  3. Diagnóstico Automático (NOVO)     # Card inteligente
+  4. Botões Ação Rápida (NOVO)         # 4 botões de acesso rápido
+  5. Status em Tempo Real              # Mantido
+  6. Proteções e Limites               # Mantido
+  7. Configurações Editáveis           # Mantido
+  8. Automações e Eventos              # Mantido
+  9. Manual Reformatado (NOVO)         # Substituiu manual antigo
+  10. Histórico 24h                    # Mantido
+```
+### Card Diagnóstico (Auto-Atualizado)
+
+**Localização:** Antes dos cards de "Status em Tempo Real"
+
+**Funcionalidades:**
+- Análise inteligente do estado atual
+- Detecta e explica por que bomba está ON/OFF/Bloqueada
+- Verifica pré-requisitos automaticamente
+- Análise de potência com tabela de faixas
+- Status de todos os timers
+- Lista todas as automações e seus estados
+- Estatísticas do dia consolidadas
+- Últimos eventos (ativação, timeout)
+
+**Lógica de Diagnóstico:**
+```python
+if override_ativo:
+    return "Sistema manual - automação desabilitada"
+elif automacao_off:
+    return "Automação principal desligada"
+elif switch_on:
+    if funcionando_real:
+        return "Funcionando normalmente"
+    else:
+        return "Ligada sem carga - verificar problema"
+elif fluxo_detectado:
+    if cooldown_ativo:
+        return "Aguardando cooldown terminar"
+    elif limite_ciclos:
+        return "Limite de ciclos atingido"
+    elif not modo_seguro:
+        return "Bloqueado por segurança"
+    else:
+        return "DEVERIA INICIAR - forçar trigger"
+else:
+    return "Standby - aguardando fluxo"
+```
+
+### Botões de Ação Rápida
+
+**Botão "Forçar Trigger":**
+- Ação: `automation.trigger` em `automation.bomba_agua_quente_controle_principal`
+- Uso: Testar detecção de fluxo sem abrir torneira
+- Cor: Laranja (atenção)
+
+**Botão "Ver Logs":**
+- Navegação: `/config/logs`
+- Uso: Acessar logs do sistema rapidamente
+- Cor: Azul (informação)
+
+**Botão "Automações":**
+- Navegação: `/config/automation`
+- Uso: Visualizar/editar automações
+- Cor: Roxo (configuração)
+
+**Botão "Relatório":**
+- Ação: `script.pump_detailed_report`
+- Uso: Gerar notificação com relatório completo
+- Cor: Verde (ação positiva)
+
+### Manual Reformatado
+
+**Melhorias vs versão anterior:**
+- Tabelas ao invés de texto corrido
+- Seção "Como Funciona" com fluxo ASCII visual
+- Faixas de potência em tabela com cores (🟢🟡🔴)
+- Troubleshooting organizado por problema
+- Seção "Quando o Sistema Intervém" em tabela
+- Informações técnicas consolidadas no final
+
+**Estrutura:**
+1. O que é o Sistema
+2. Botões de Controle (tabela)
+3. Indicadores (explicação detalhada)
+4. Como Funciona (fluxo visual)
+5. Configurações Ajustáveis
+6. Faixas de Potência (tabela calibrada)
+7. Quando o Sistema Intervém (tabela)
+8. Troubleshooting Rápido (por problema)
+9. Dicas de Uso (lista)
+10. Informações Técnicas
+
+
+
 ### Helpers (22 ENTIDADES)
 
 **Timers (4):**
@@ -389,6 +489,29 @@ target:
 data:
   value: 5  # novo valor em segundos
 ```
+
+### Adicionar Novo Card ao Dashboard
+
+**Localização:** `config/dashboards/bomba-agua-quente.yaml`
+
+Para adicionar o card de diagnóstico e manual reformulado:
+
+1. Abrir dashboard em modo edição
+2. Localizar card "Manual do Sistema" antigo
+3. Deletar card antigo
+4. Adicionar card tipo "Manual" ou usar editor YAML
+5. Colar conteúdo de `config/dashboards/bomba-card-diagnostico-manual.yaml`
+6. Salvar dashboard
+
+**Dependências:**
+- `card_mod` (opcional - para estilização)
+- Todas as entidades listadas em "ENTIDADES CRÍTICAS"
+- Template sensors funcionando corretamente
+
+**Troubleshooting:**
+- Se valores aparecerem como "unknown": verificar entidades existem
+- Se card não atualizar: verificar sintaxe YAML
+- Se estilização não funcionar: instalar `card_mod` via HACS
 
 ### Alterar Thresholds Potência
 ```yaml

@@ -79,6 +79,22 @@ Settings → System → Restart
 Services → script.pump_system_test → Execute
 ```
 
+### 8. Configurar Dashboard
+```bash
+# Copiar card de diagnóstico e manual
+cp config/dashboards/bomba-card-diagnostico-manual.yaml /config/www/
+
+# Editar dashboard principal
+# Substituir card do manual antigo pelo novo
+```
+
+**Ou via UI:**
+1. Settings → Dashboards → Bomba Água Quente → Edit
+2. Deletar card "Manual do Sistema" antigo
+3. Add Card → Manual
+4. Cole conteúdo de `bomba-card-diagnostico-manual.yaml`
+5. Save
+
 ## 🎛️ Configurações Principais
 
 ### Delays (ajustáveis via UI)
@@ -114,6 +130,50 @@ Cards disponíveis:
 - **Estatísticas:** ciclos, runtime, custo, eficiência
 - **Configurações:** todos parâmetros editáveis via UI
 - **Gráficos:** potência e histórico 24h
+
+## 📱 Interface Dashboard v2.1
+
+### Novidades
+- **🧪 Diagnóstico Automático:** Analisa e explica estado do sistema em tempo real
+- **⚡ Ação Rápida:** Botões de acesso rápido (logs, automações, relatório, trigger)
+- **📖 Manual Reformatado:** Tabelas visuais, fluxo de funcionamento, troubleshooting detalhado
+
+### Cards Disponíveis
+
+| Card | Descrição | Tipo |
+|------|-----------|------|
+| **Status Principal** | Estado + gauge potência | Mantido |
+| **Controles** | 7 botões (override, manual, teste, reset + 3 novos) | Expandido |
+| **Diagnóstico** | Análise inteligente do estado atual | 🆕 NOVO |
+| **Ação Rápida** | Forçar trigger, logs, automações, relatório | 🆕 NOVO |
+| **Status Tempo Real** | Entities com estados | Mantido |
+| **Proteções** | Timers e limites | Mantido |
+| **Configurações** | Input numbers editáveis | Mantido |
+| **Automações** | Lista com last-triggered | Mantido |
+| **Manual** | Guia completo reformatado | 🔄 REFORMULADO |
+| **Histórico** | Gráfico 24h | Mantido |
+
+### Funcionalidades do Diagnóstico
+
+✅ Detecta e explica por que bomba está em cada estado  
+✅ Verifica pré-requisitos automaticamente (override, limites, cooldown)  
+✅ Análise de potência com faixas calibradas em tabela  
+✅ Status de todos os timers em tempo real  
+✅ Lista automações e seus estados  
+✅ Estatísticas consolidadas do dia  
+✅ Últimos eventos (ativação, timeout)  
+✅ Atualização automática sem reload  
+
+### Como Acessar
+
+1. Sidebar → Bomba Água Quente
+2. Card "Diagnóstico do Sistema" mostra análise automática
+3. Botões de ação rápida abaixo do diagnóstico
+4. Scroll para baixo → Manual completo reformatado
+
+### Arquivo de Configuração
+
+Dashboard completo em: `config/dashboards/bomba-card-diagnostico-manual.yaml`
 
 ## 🔧 Manutenção
 
@@ -198,10 +258,10 @@ MIT - Livre para uso e modificação
 
 ## 👤 Autor
 
-Sistema documentado via assistente AI baseado em implementação real
+Silas Gubitoso
 
 ---
 
-**Versão:** 2.0.1  
-**Última Atualização:** Janeiro 2024  
+**Versão:** 2.1.0  
+**Última Atualização:** 2025-10-22  
 **Status:** Produção ✅
