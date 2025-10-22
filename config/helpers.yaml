@@ -1,0 +1,256 @@
+# Helpers - Referência para Criação Manual
+# Sistema Bomba Água Quente v2.0
+
+# IMPORTANTE: Criar via UI em Settings → Helpers → Create Helper
+# Este arquivo serve apenas como REFERÊNCIA das especificações
+
+# ========================================
+# TIMERS (4)
+# ========================================
+
+# timer.pump_activation_delay
+# - Nome: Pump Activation Delay
+# - Duração: 00:00:30
+# - Icon: mdi:timer-sand
+
+# timer.pump_deactivation_delay
+# - Nome: Pump Deactivation Delay
+# - Duração: 00:01:00
+# - Icon: mdi:timer-sand
+
+# timer.pump_safety_timeout
+# - Nome: Pump Safety Timeout
+# - Duração: 01:00:00
+# - Icon: mdi:timer-alert
+
+# timer.pump_anti_cycle_cooldown
+# - Nome: Pump Anti-Cycle Cooldown
+# - Duração: 00:10:00
+# - Icon: mdi:timer-pause
+
+# ========================================
+# INPUT BOOLEANS (3)
+# ========================================
+
+# input_boolean.pump_manual_override
+# - Nome: Pump Manual Override
+# - Icon: mdi:hand-back-right
+
+# input_boolean.pump_manual_control
+# - Nome: Pump Manual Control
+# - Icon: mdi:toggle-switch
+
+# input_boolean.pump_alerts_enabled
+# - Nome: Pump Alerts Enabled
+# - Icon: mdi:bell
+
+# ========================================
+# COUNTERS (4)
+# ========================================
+
+# counter.pump_hourly_cycles
+# - Nome: Pump Hourly Cycles
+# - Inicial: 0
+# - Step: 1
+# - Mínimo: 0
+# - Máximo: 50
+# - Icon: mdi:counter
+
+# counter.pump_daily_cycles
+# - Nome: Pump Daily Cycles
+# - Inicial: 0
+# - Step: 1
+# - Mínimo: 0
+# - Máximo: 999
+# - Icon: mdi:counter
+
+# counter.pump_timeout_events
+# - Nome: Pump Timeout Events
+# - Inicial: 0
+# - Step: 1
+# - Mínimo: 0
+# - Máximo: 9999
+# - Icon: mdi:alert
+
+# counter.pump_power_alerts
+# - Nome: Pump Power Alerts
+# - Inicial: 0
+# - Step: 1
+# - Mínimo: 0
+# - Máximo: 9999
+# - Icon: mdi:flash-alert
+
+# ========================================
+# INPUT DATETIME (2)
+# ========================================
+
+# input_datetime.pump_last_activation
+# - Nome: Pump Last Activation
+# - Has Date: true
+# - Has Time: true
+# - Icon: mdi:clock-start
+
+# input_datetime.pump_last_timeout
+# - Nome: Pump Last Timeout
+# - Has Date: true
+# - Has Time: true
+# - Icon: mdi:clock-alert
+
+# ========================================
+# INPUT NUMBERS (9) - CONFIGURÁVEIS
+# ========================================
+
+# THRESHOLDS POTÊNCIA
+
+# input_number.pump_power_threshold_low
+# - Nome: Limite Potência Baixa
+# - Mínimo: 20
+# - Máximo: 50
+# - Step: 1
+# - Valor Padrão: 40
+# - Unidade: W
+# - Icon: mdi:flash-triangle
+
+# input_number.pump_power_threshold_high
+# - Nome: Limite Potência Alta
+# - Mínimo: 50
+# - Máximo: 100
+# - Step: 1
+# - Valor Padrão: 60
+# - Unidade: W
+# - Icon: mdi:flash-triangle
+
+# input_number.pump_power_normal_min
+# - Nome: Potência Normal Mínimo
+# - Mínimo: 30
+# - Máximo: 60
+# - Step: 1
+# - Valor Padrão: 48
+# - Unidade: W
+# - Icon: mdi:flash
+
+# input_number.pump_power_normal_max
+# - Nome: Potência Normal Máximo
+# - Mínimo: 40
+# - Máximo: 80
+# - Step: 1
+# - Valor Padrão: 53
+# - Unidade: W
+# - Icon: mdi:flash
+
+# LIMITES OPERACIONAIS
+
+# input_number.pump_max_daily_runtime
+# - Nome: Runtime Máximo Diário
+# - Mínimo: 1
+# - Máximo: 24
+# - Step: 0.5
+# - Valor Padrão: 8
+# - Unidade: h
+# - Icon: mdi:clock-time-eight
+
+# input_number.pump_max_hourly_cycles
+# - Nome: Máximo Ciclos por Hora
+# - Mínimo: 5
+# - Máximo: 50
+# - Step: 1
+# - Valor Padrão: 20
+# - Unidade: ciclos
+# - Icon: mdi:counter
+
+# TEMPOS
+
+# input_number.pump_timeout_minutes
+# - Nome: Timeout Segurança
+# - Mínimo: 5
+# - Máximo: 60
+# - Step: 5
+# - Valor Padrão: 30
+# - Unidade: min
+# - Icon: mdi:timer-off
+
+# input_number.pump_cooldown_minutes
+# - Nome: Cooldown Entre Ciclos
+# - Mínimo: 0
+# - Máximo: 10
+# - Step: 1
+# - Valor Padrão: 3
+# - Unidade: min
+# - Icon: mdi:timer-pause
+
+# input_number.pump_activation_delay_seconds
+# - Nome: Delay Ligar Bomba
+# - Mínimo: 0
+# - Máximo: 30
+# - Step: 1
+# - Valor Padrão: 3
+# - Unidade: s
+# - Icon: mdi:timer-play
+
+# input_number.pump_deactivation_delay_seconds
+# - Nome: Delay Desligar Bomba
+# - Mínimo: 0
+# - Máximo: 60
+# - Step: 5
+# - Valor Padrão: 20
+# - Unidade: s
+# - Icon: mdi:timer-stop
+
+# CUSTO
+
+# input_number.bomba_energy_tariff
+# - Nome: Tarifa Energia
+# - Mínimo: 0.1
+# - Máximo: 2
+# - Step: 0.01
+# - Valor Padrão: 0.85
+# - Unidade: R$/kWh
+# - Icon: mdi:currency-brl
+
+# ========================================
+# INSTRUÇÕES DE CRIAÇÃO
+# ========================================
+
+# 1. Acesse: Settings → Devices & Services → Helpers
+# 2. Clique em: + CREATE HELPER
+# 3. Escolha o tipo (Timer, Toggle, Counter, Date/Time, Number)
+# 4. Preencha com as especificações acima
+# 5. Repita para todas as 22 entidades
+
+# ========================================
+# VALIDAÇÃO
+# ========================================
+
+# Após criar todos os helpers, validar via Developer Tools → Template:
+
+# {% set required_helpers = [
+#   'timer.pump_activation_delay',
+#   'timer.pump_deactivation_delay',
+#   'timer.pump_safety_timeout',
+#   'timer.pump_anti_cycle_cooldown',
+#   'input_boolean.pump_manual_override',
+#   'input_boolean.pump_manual_control',
+#   'input_boolean.pump_alerts_enabled',
+#   'counter.pump_hourly_cycles',
+#   'counter.pump_daily_cycles',
+#   'counter.pump_timeout_events',
+#   'counter.pump_power_alerts',
+#   'input_datetime.pump_last_activation',
+#   'input_datetime.pump_last_timeout',
+#   'input_number.pump_power_threshold_low',
+#   'input_number.pump_power_threshold_high',
+#   'input_number.pump_power_normal_min',
+#   'input_number.pump_power_normal_max',
+#   'input_number.pump_max_daily_runtime',
+#   'input_number.pump_max_hourly_cycles',
+#   'input_number.pump_timeout_minutes',
+#   'input_number.pump_cooldown_minutes',
+#   'input_number.pump_activation_delay_seconds',
+#   'input_number.pump_deactivation_delay_seconds',
+#   'input_number.bomba_energy_tariff'
+# ] %}
+# 
+# VALIDAÇÃO HELPERS (22 entidades):
+# {% for helper in required_helpers %}
+# {{ loop.index }}. {{ helper }}: {% if states(helper) != 'unknown' %}✅ OK{% else %}❌ FALTANDO{% endif %}
+# {% endfor %}

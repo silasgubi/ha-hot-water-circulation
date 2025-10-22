@@ -1,0 +1,235 @@
+# Scripts - Sistema Bomba Água Quente v2.0
+
+# 1. TESTE SISTEMA COMPLETO
+pump_system_test:
+  alias: "Bomba - Teste Sistema Completo"
+  description: "Executa teste completo do sistema (liga 5s e desliga)"
+  mode: single
+  icon: mdi:test-tube
+  sequence:
+    - service: logbook.log
+      data:
+        name: "🧪 TESTE SISTEMA INICIADO"
+        message: "Iniciando teste completo do sistema da bomba"
+    
+    # Desabilita override temporariamente
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.pump_manual_override
+    
+    - delay: "00:00:02"
+    
+    # Liga bomba
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bomba_de_circulacao_de_agua_quente
+    
+    - service: logbook.log
+      data:
+        name: "🧪 Bomba Ligada"
+        message: "Aguardando 5 segundos..."
+    
+    - delay: "00:00:05"
+    
+    # Verifica potência
+    - service: logbook.log
+      data:
+        name: "🧪 Medição"
+        message: "Potência: {{ states('sensor.bomba_de_circulacao_de_agua_quente_potencia') }}W"
+    
+    # Desliga bomba
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bomba_de_circulacao_de_agua_quente
+    
+    - service: logbook.log
+      data:
+        name: "✅ TESTE CONCLUÍDO"
+        message: "Teste do sistema finalizado com sucesso"
+    
+    # Notificação
+    - service: persistent_notification.create
+      data:
+        title: "✅ Teste Sistema Concluído"
+        message: >
+          Teste executado com sucesso!
+          
+          Potência medida: {{ states('sensor.bomba_de_circulacao_de_agua_quente_potencia') }}W
+          Faixa normal: {{ states('input_number.pump_power_normal_min') }}-{{ states('input_number.pump_power_normal_max') }}W
+          
+          Horário: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_test_result
+
+# 2. RESET EMERGÊNCIA
+pump_emergency_reset:
+  alias: "Bomba - Reset Emergência"
+  description: "Desliga bomba, cancela timers e reseta sistema"
+  mode: single
+  icon: mdi:alert-octagon
+  sequence:
+    - service: logbook.log
+      data:
+        name: "🛑 RESET DE EMERGÊNCIA INICIADO"
+        message: "Executando reset completo do sistema"
+    
+    # Desliga bomba imediatamente
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bomba_de_circulacao_de_agua_quente
+    
+    # Cancela todos os timers
+    - service: timer.cancel
+      target:
+        entity_id: 
+          - timer.pump_activation_delay
+          - timer.pump_deactivation_delay
+          - timer.pump_safety_timeout
+          - timer.pump_anti_cycle_cooldown
+    
+    # Desabilita controles manuais
+    - service: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.pump_manual_override
+          - input_boolean.pump_manual_control
+    
+    - delay: "00:00:01"
+    
+    - service: logbook.log
+      data:
+        name: "🛑 RESET DE EMERGÊNCIA CONCLUÍDO"
+        message: "Sistema resetado - bomba desligada e timers cancelados"
+    
+    # Notificação persistente
+    - service: persistent_notification.create
+      data:
+        title: "🛑 Reset de Emergência Executado"
+        message: >
+          O sistema foi resetado com sucesso:
+          
+          ✓ Bomba desligada
+          ✓ Todos os timers cancelados
+          ✓ Controles manuais desabilitados
+          ✓ Sistema pronto para operação normal
+          
+          Horário: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_emergency
+
+# 3. RELATÓRIO DETALHADO
+pump_detailed_report:
+  alias: "Bomba - Relatório Detalhado"
+  description: "Gera relatório completo com todas as métricas"
+  mode: single
+  icon: mdi:file-chart
+  sequence:
+    - service: persistent_notification.create
+      data:
+        title: "📊 RELATÓRIO DETALHADO - BOMBA"
+        message: >
+          **Data/Hora:** {{ now().strftime('%d/%m/%Y %H:%M') }}
+          
+          ---
+          
+          **ESTATÍSTICAS DO DIA:**
+          • Ciclos: {{ states('counter.pump_daily_cycles') }}
+          • Runtime: {{ states('sensor.bomba_runtime_hoje') }}h
+          • Consumo: {{ states('sensor.pump_energy_daily') }} kWh
+          • Custo: R$ {{ states('sensor.bomba_custo_hoje') }}
+          • Eficiência: {{ states('sensor.bomba_eficiencia') }} min/ciclo
+          
+          ---
+          
+          **CONTADORES:**
+          • Ciclos/hora: {{ states('counter.pump_hourly_cycles') }}/{{ states('input_number.pump_max_hourly_cycles') }}
+          • Timeouts totais: {{ states('counter.pump_timeout_events') }}
+          • Alertas potência: {{ states('counter.pump_power_alerts') }}
+          
+          ---
+          
+          **STATUS ATUAL:**
+          • Bomba: {{ states('sensor.bomba_status') }}
+          • Sistema: {{ states('sensor.bomba_sistema_status') }}
+          • Potência: {{ states('sensor.bomba_de_circulacao_de_agua_quente_potencia') }}W
+          • Fluxo: {{ states('valve.hot_water') }}
+          • Funcionando: {{ states('binary_sensor.bomba_funcionando') }}
+          • Modo Seguro: {{ states('binary_sensor.bomba_modo_seguro') }}
+          
+          ---
+          
+          **CONFIGURAÇÕES ATUAIS:**
+          • Delay liga: {{ states('input_number.pump_activation_delay_seconds') }}s
+          • Delay desliga: {{ states('input_number.pump_deactivation_delay_seconds') }}s
+          • Timeout: {{ states('input_number.pump_timeout_minutes') }}min
+          • Cooldown: {{ states('input_number.pump_cooldown_minutes') }}min
+          
+          ---
+          
+          **THRESHOLDS POTÊNCIA:**
+          • Normal: {{ states('input_number.pump_power_normal_min') }}-{{ states('input_number.pump_power_normal_max') }}W
+          • Alerta baixo: <{{ states('input_number.pump_power_threshold_low') }}W
+          • Alerta alto: >{{ states('input_number.pump_power_threshold_high') }}W
+          
+          ---
+          
+          **TIMERS:**
+          • Activation: {{ states('timer.pump_activation_delay') }}
+          • Deactivation: {{ states('timer.pump_deactivation_delay') }}
+          • Safety timeout: {{ states('timer.pump_safety_timeout') }}
+          • Cooldown: {{ states('timer.pump_anti_cycle_cooldown') }}
+          
+          ---
+          
+          **ÚLTIMOS EVENTOS:**
+          • Última ativação: {{ states('input_datetime.pump_last_activation') }}
+          • Último timeout: {{ states('input_datetime.pump_last_timeout') }}
+        notification_id: pump_detailed_report
+    
+    - service: logbook.log
+      data:
+        name: "📊 Relatório Detalhado Gerado"
+        message: "Relatório completo disponível nas notificações"
+
+# 4. BACKUP CONFIGURAÇÕES (BONUS)
+pump_backup_config:
+  alias: "Bomba - Backup Configurações"
+  description: "Registra configurações atuais no log"
+  mode: single
+  icon: mdi:content-save
+  sequence:
+    - service: system_log.write
+      data:
+        message: >
+          BACKUP CONFIGURAÇÕES BOMBA - {{ now().strftime('%d/%m/%Y %H:%M:%S') }}
+          
+          DELAYS:
+          - Ativação: {{ states('input_number.pump_activation_delay_seconds') }}s
+          - Desativação: {{ states('input_number.pump_deactivation_delay_seconds') }}s
+          
+          TIMEOUTS:
+          - Safety: {{ states('input_number.pump_timeout_minutes') }}min
+          - Cooldown: {{ states('input_number.pump_cooldown_minutes') }}min
+          
+          THRESHOLDS POTÊNCIA:
+          - Baixo: {{ states('input_number.pump_power_threshold_low') }}W
+          - Alto: {{ states('input_number.pump_power_threshold_high') }}W
+          - Normal Min: {{ states('input_number.pump_power_normal_min') }}W
+          - Normal Max: {{ states('input_number.pump_power_normal_max') }}W
+          
+          LIMITES:
+          - Max runtime/dia: {{ states('input_number.pump_max_daily_runtime') }}h
+          - Max ciclos/hora: {{ states('input_number.pump_max_hourly_cycles') }}
+          
+          CUSTO:
+          - Tarifa: R$ {{ states('input_number.bomba_energy_tariff') }}/kWh
+        level: info
+    
+    - service: logbook.log
+      data:
+        name: "💾 Backup Configurações"
+        message: "Configurações registradas no system log"
+    
+    - service: persistent_notification.create
+      data:
+        title: "💾 Backup Criado"
+        message: "Configurações salvas no log do sistema"
+        notification_id: pump_backup

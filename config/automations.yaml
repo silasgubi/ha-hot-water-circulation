@@ -1,0 +1,330 @@
+# Automações - Sistema Bomba Água Quente v2.0
+
+# 1. CONTROLE PRINCIPAL
+- id: bomba_agua_quente_controle_principal
+  alias: "Bomba Água Quente - Controle Principal"
+  description: "Controla acionamento automático da bomba baseado em detecção de fluxo"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: valve.hot_water
+      to: "open"
+      id: fluxo_aberto
+    - platform: state
+      entity_id: valve.hot_water
+      to: "closed"
+      id: fluxo_fechado
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_activation_delay
+      id: timer_ligar_terminou
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_deactivation_delay
+      id: timer_desligar_terminou
+  
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_manual_override
+      state: "off"
+  
+  action:
+    - choose:
+        # FLUXO ABERTO - Iniciar sequência de ativação
+        - conditions:
+            - condition: trigger
+              id: fluxo_aberto
+            - condition: state
+              entity_id: binary_sensor.bomba_modo_seguro
+              state: "on"
+            - condition: state
+              entity_id: timer.pump_anti_cycle_cooldown
+              state: "idle"
+          sequence:
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_deactivation_delay
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_activation_delay
+              data:
+                duration: "{{ states('input_number.pump_activation_delay_seconds') | int }}"
+            
+            - service: logbook.log
+              data:
+                name: "💧 Fluxo Detectado"
+                message: "Aguardando {{ states('input_number.pump_activation_delay_seconds') }}s para confirmar"
+        
+        # TIMER LIGAR TERMINOU - Ativar bomba
+        - conditions:
+            - condition: trigger
+              id: timer_ligar_terminou
+            - condition: state
+              entity_id: valve.hot_water
+              state: "open"
+            - condition: state
+              entity_id: switch.bomba_de_circulacao_de_agua_quente
+              state: "off"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: counter.increment
+              target:
+                entity_id:
+                  - counter.pump_hourly_cycles
+                  - counter.pump_daily_cycles
+            
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.pump_last_activation
+              data:
+                datetime: "{{ now().isoformat() }}"
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_safety_timeout
+              data:
+                duration: "{{ (states('input_number.pump_timeout_minutes') | int * 60) }}"
+            
+            - service: logbook.log
+              data:
+                name: "✅ Bomba Ativada"
+                message: "Ciclo {{ states('counter.pump_hourly_cycles') }}/{{ states('input_number.pump_max_hourly_cycles') }} | Timeout: {{ states('input_number.pump_timeout_minutes') }}min"
+        
+        # FLUXO FECHADO - Iniciar sequência de desativação
+        - conditions:
+            - condition: trigger
+              id: fluxo_fechado
+            - condition: state
+              entity_id: switch.bomba_de_circulacao_de_agua_quente
+              state: "on"
+          sequence:
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_activation_delay
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_deactivation_delay
+              data:
+                duration: "{{ states('input_number.pump_deactivation_delay_seconds') | int }}"
+            
+            - service: logbook.log
+              data:
+                name: "🚰 Fluxo Fechado"
+                message: "Aguardando {{ states('input_number.pump_deactivation_delay_seconds') }}s para desligar"
+        
+        # TIMER DESLIGAR TERMINOU - Desativar bomba
+        - conditions:
+            - condition: trigger
+              id: timer_desligar_terminou
+            - condition: state
+              entity_id: valve.hot_water
+              state: "closed"
+            - condition: state
+              entity_id: switch.bomba_de_circulacao_de_agua_quente
+              state: "on"
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_safety_timeout
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_anti_cycle_cooldown
+              data:
+                duration: "{{ (states('input_number.pump_cooldown_minutes') | int * 60) }}"
+            
+            - service: logbook.log
+              data:
+                name: "⏹️ Bomba Desativada"
+                message: "Cooldown: {{ states('input_number.pump_cooldown_minutes') }}min"
+
+# 2. TIMEOUT DE SEGURANÇA
+- id: bomba_timeout_seguranca
+  alias: "Bomba - Timeout Segurança"
+  description: "Desliga bomba automaticamente após timeout configurado"
+  mode: single
+  trigger:
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_safety_timeout
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bomba_de_circulacao_de_agua_quente
+    
+    - service: counter.increment
+      target:
+        entity_id: counter.pump_timeout_events
+    
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.pump_last_timeout
+      data:
+        datetime: "{{ now().isoformat() }}"
+    
+    - service: logbook.log
+      data:
+        name: "⚠️ TIMEOUT SEGURANÇA"
+        message: "Bomba desligada após {{ states('input_number.pump_timeout_minutes') }}min - Total timeouts: {{ states('counter.pump_timeout_events') }}"
+    
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+    
+    - service: persistent_notification.create
+      data:
+        title: "⚠️ Timeout Bomba"
+        message: >
+          Bomba desligada automaticamente após {{ states('input_number.pump_timeout_minutes') }}min.
+          Verifique se há vazamento ou torneira aberta.
+          Horário: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_timeout
+
+# 3. CONTROLE MANUAL
+- id: bomba_controle_manual
+  alias: "Bomba - Controle Manual"
+  description: "Override manual do sistema automático"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: input_boolean.pump_manual_control
+      to: "on"
+      id: manual_on
+    - platform: state
+      entity_id: input_boolean.pump_manual_control
+      to: "off"
+      id: manual_off
+  
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_manual_override
+      state: "on"
+  
+  action:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: manual_on
+            - condition: state
+              entity_id: binary_sensor.bomba_modo_seguro
+              state: "on"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_safety_timeout
+              data:
+                duration: "{{ (states('input_number.pump_timeout_minutes') | int * 60) }}"
+            
+            - service: logbook.log
+              data:
+                name: "🔧 Controle Manual ON"
+                message: "Bomba ligada manualmente"
+        
+        - conditions:
+            - condition: trigger
+              id: manual_off
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_safety_timeout
+            
+            - service: logbook.log
+              data:
+                name: "🔧 Controle Manual OFF"
+                message: "Bomba desligada manualmente"
+
+# 4. RESET CONTADOR HORÁRIO
+- id: bomba_reset_contador_horario
+  alias: "Bomba - Reset Contador Horário"
+  description: "Reseta contador de ciclos a cada hora"
+  mode: single
+  trigger:
+    - platform: time_pattern
+      minutes: "0"
+  
+  action:
+    - service: counter.reset
+      target:
+        entity_id: counter.pump_hourly_cycles
+    
+    - service: logbook.log
+      data:
+        name: "🔄 Reset Horário"
+        message: "Contador de ciclos resetado"
+
+# 5. RESET CONTADOR DIÁRIO
+- id: bomba_reset_contador_diario
+  alias: "Bomba - Reset Contador Diário"
+  description: "Reseta contador de ciclos diário à meia-noite"
+  mode: single
+  trigger:
+    - platform: time
+      at: "00:00:00"
+  
+  action:
+    - service: counter.reset
+      target:
+        entity_id: counter.pump_daily_cycles
+    
+    - service: logbook.log
+      data:
+        name: "🔄 Reset Diário"
+        message: "Contador diário resetado"
+
+# 6. RELATÓRIO DIÁRIO
+- id: bomba_relatorio_diario
+  alias: "Bomba - Relatório Diário"
+  description: "Envia relatório diário de estatísticas às 22:00"
+  mode: single
+  trigger:
+    - platform: time
+      at: "22:00:00"
+  
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+  
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "📊 Relatório Diário - Bomba"
+        message: >
+          **Estatísticas de {{ now().strftime('%d/%m/%Y') }}:**
+          
+          • Ciclos: {{ states('counter.pump_daily_cycles') }}
+          • Runtime: {{ states('sensor.bomba_runtime_hoje') }}h
+          • Consumo: {{ states('sensor.pump_energy_daily') }} kWh
+          • Custo: R$ {{ states('sensor.bomba_custo_hoje') }}
+          • Eficiência: {{ states('sensor.bomba_eficiencia') }} min/ciclo
+          
+          **Status:**
+          • Timeouts: {{ states('counter.pump_timeout_events') }}
+          • Sistema: {{ states('sensor.bomba_sistema_status') }}
+        notification_id: pump_daily_report
+    
+    - service: logbook.log
+      data:
+        name: "📊 Relatório Diário"
+        message: "Ciclos: {{ states('counter.pump_daily_cycles') }} | Runtime: {{ states('sensor.bomba_runtime_hoje') }}h | Custo: R$ {{ states('sensor.bomba_custo_hoje') }}"

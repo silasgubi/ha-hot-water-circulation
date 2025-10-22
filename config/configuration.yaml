@@ -1,0 +1,179 @@
+# Configuration - Sistema Bomba Água Quente v2.0
+# Adicionar ao seu configuration.yaml existente
+
+# TEMPLATE SENSORS
+template:
+  - sensor:
+      # Status da Bomba
+      - name: "Bomba Status"
+        unique_id: bomba_status
+        state: >
+          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
+          {% if power > 35 %}
+            Funcionando
+          {% elif states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
+            Ligada sem carga
+          {% else %}
+            Desligada
+          {% endif %}
+        icon: mdi:pump
+
+      # Runtime Hoje
+      - name: "Bomba Runtime Hoje"
+        unique_id: bomba_runtime_hoje
+        unit_of_measurement: "h"
+        state: >
+          {% set ns = namespace(total=0) %}
+          {% if has_value('sensor.bomba_de_circulacao_de_agua_quente_potencia') %}
+            {% set today = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
+            {% for state in states.sensor.bomba_de_circulacao_de_agua_quente_potencia.history(start_time=today) %}
+              {% if state.state | float(0) > 35 %}
+                {% set ns.total = ns.total + 0.083 %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.total | round(1) }}
+        icon: mdi:timer-outline
+
+      # Eficiência (minutos por ciclo)
+      - name: "Bomba Eficiência"
+        unique_id: bomba_eficiencia
+        unit_of_measurement: "min/ciclo"
+        state: >
+          {% set runtime = states('sensor.bomba_runtime_hoje') | float(0) %}
+          {% set cycles = states('counter.pump_daily_cycles') | int(0) %}
+          {% if cycles > 0 %}
+            {{ ((runtime * 60) / cycles) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        icon: mdi:speedometer
+
+      # Custo Hoje
+      - name: "Bomba Custo Hoje"
+        unique_id: bomba_custo_hoje
+        unit_of_measurement: "R$"
+        state: >
+          {% set energy = states('sensor.pump_energy_daily') | float(0) %}
+          {% set tariff = states('input_number.bomba_energy_tariff') | float(0.85) %}
+          {{ (energy * tariff) | round(2) }}
+        icon: mdi:currency-brl
+
+      # Sistema Status
+      - name: "Bomba Sistema Status"
+        unique_id: bomba_sistema_status
+        state: >
+          {% set override = states('input_boolean.pump_manual_override') %}
+          {% set cycles = states('counter.pump_hourly_cycles') | int(0) %}
+          {% set max_cycles = states('input_number.pump_max_hourly_cycles') | int(20) %}
+          {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') %}
+          {% set timeout_active = states('timer.pump_safety_timeout') %}
+          
+          {% if override == 'on' %}
+            Manual
+          {% elif cycles >= (max_cycles - 2) %}
+            Limite próximo
+          {% elif timeout_active == 'active' and pump_on == 'on' %}
+            Funcionando
+          {% elif pump_on == 'on' %}
+            Ativo
+          {% else %}
+            Standby
+          {% endif %}
+        icon: mdi:information-outline
+
+  # BINARY SENSORS
+  - binary_sensor:
+      # Bomba Funcionando (baseado em potência real)
+      - name: "Bomba Funcionando"
+        unique_id: bomba_funcionando
+        device_class: running
+        state: >
+          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
+          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
+          {{ power > low }}
+        icon: >
+          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
+          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
+          {% if power > low %}
+            mdi:pump
+          {% else %}
+            mdi:pump-off
+          {% endif %}
+
+      # Fluxo Água Quente
+      - name: "Fluxo Água Quente"
+        unique_id: fluxo_agua_quente
+        device_class: opening
+        state: "{{ states('valve.hot_water') == 'open' }}"
+        icon: >
+          {% if states('valve.hot_water') == 'open' %}
+            mdi:water
+          {% else %}
+            mdi:water-off
+          {% endif %}
+
+      # Modo Seguro
+      - name: "Bomba Modo Seguro"
+        unique_id: bomba_modo_seguro
+        device_class: safety
+        state: >
+          {% set cycles = states('counter.pump_hourly_cycles') | int(0) %}
+          {% set max_cycles = states('input_number.pump_max_hourly_cycles') | int(20) %}
+          {% set override = states('input_boolean.pump_manual_override') %}
+          {{ cycles < max_cycles and override == 'off' }}
+        icon: >
+          {% set cycles = states('counter.pump_hourly_cycles') | int(0) %}
+          {% set max_cycles = states('input_number.pump_max_hourly_cycles') | int(20) %}
+          {% set override = states('input_boolean.pump_manual_override') %}
+          {% if cycles < max_cycles and override == 'off' %}
+            mdi:shield-check
+          {% else %}
+            mdi:shield-alert
+          {% endif %}
+
+      # Potência Anormal
+      - name: "Bomba Potência Anormal"
+        unique_id: bomba_potencia_anormal
+        device_class: problem
+        state: >
+          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
+          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
+          {% set high = states('input_number.pump_power_threshold_high') | float(60) %}
+          {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
+          
+          {% if pump_on and (power < low or power > high) %}
+            true
+          {% else %}
+            false
+          {% endif %}
+        icon: >
+          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
+          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
+          {% set high = states('input_number.pump_power_threshold_high') | float(60) %}
+          {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
+          {% if pump_on and (power < low or power > high) %}
+            mdi:flash-alert
+          {% else %}
+            mdi:flash
+          {% endif %}
+
+# UTILITY METERS
+utility_meter:
+  # Consumo Diário
+  pump_energy_daily:
+    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
+    cycle: daily
+    name: "Bomba Energia Diário"
+    
+  # Consumo Semanal
+  pump_energy_weekly:
+    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
+    cycle: weekly
+    name: "Bomba Energia Semanal"
+    
+  # Consumo Mensal
+  pump_energy_monthly:
+    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
+    cycle: monthly
+    name: "Bomba Energia Mensal"
