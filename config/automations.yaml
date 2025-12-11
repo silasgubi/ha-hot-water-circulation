@@ -1,4 +1,5 @@
-# Automações - Sistema Bomba Água Quente v2.0
+# Automações v3.0 - Sistema Bomba Água Quente
+# Mudanças: Potência → Corrente nas condições
 
 # 1. CONTROLE PRINCIPAL
 - id: bomba_agua_quente_controle_principal
@@ -146,7 +147,7 @@
             
             - service: logbook.log
               data:
-                name: "⏹️ Bomba Desativada"
+                name: "ℹ️ Bomba Desativada"
                 message: "Cooldown: {{ states('input_number.pump_cooldown_minutes') }}min"
 
 # 2. TIMEOUT DE SEGURANÇA
@@ -254,7 +255,54 @@
                 name: "🔧 Controle Manual OFF"
                 message: "Bomba desligada manualmente"
 
-# 4. RESET CONTADOR HORÁRIO
+# 4. ALERTA CORRENTE ANORMAL (NOVO - substitui alerta potência)
+- id: bomba_alerta_corrente_anormal
+  alias: "Bomba - Alerta Corrente Anormal"
+  description: "Notifica quando corrente está fora dos limites normais"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bomba_corrente_anormal
+      to: "on"
+      for: "00:05:00"
+  
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+  
+  action:
+    - service: counter.increment
+      target:
+        entity_id: counter.pump_current_alerts
+    
+    - service: persistent_notification.create
+      data:
+        title: "⚡ Alerta Corrente Anormal"
+        message: >
+          Corrente fora dos limites normais por 5+ minutos.
+          
+          Corrente atual: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
+          Normal: {{ states('input_number.pump_current_normal_min') }}-{{ states('input_number.pump_current_normal_max') }}A
+          
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set low = states('input_number.pump_current_threshold_low') | float(0.24) %}
+          {% set high = states('input_number.pump_current_threshold_high') | float(0.33) %}
+          {% if current < low %}
+          ⚠️ Possível: Ar na tubulação, motor girando vazio
+          {% elif current > high %}
+          ⚠️ Possível: Emperramento, sobrecarga mecânica
+          {% endif %}
+          
+          Total alertas: {{ states('counter.pump_current_alerts') }}
+        notification_id: pump_current_alert
+    
+    - service: logbook.log
+      data:
+        name: "⚡ Corrente Anormal"
+        message: "{{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A - Alerta {{ states('counter.pump_current_alerts') }}"
+
+# 5. RESET CONTADOR HORÁRIO
 - id: bomba_reset_contador_horario
   alias: "Bomba - Reset Contador Horário"
   description: "Reseta contador de ciclos a cada hora"
@@ -273,7 +321,7 @@
         name: "🔄 Reset Horário"
         message: "Contador de ciclos resetado"
 
-# 5. RESET CONTADOR DIÁRIO
+# 6. RESET CONTADOR DIÁRIO
 - id: bomba_reset_contador_diario
   alias: "Bomba - Reset Contador Diário"
   description: "Reseta contador de ciclos diário à meia-noite"
@@ -292,7 +340,7 @@
         name: "🔄 Reset Diário"
         message: "Contador diário resetado"
 
-# 6. RELATÓRIO DIÁRIO
+# 7. RELATÓRIO DIÁRIO
 - id: bomba_relatorio_diario
   alias: "Bomba - Relatório Diário"
   description: "Envia relatório diário de estatísticas às 22:00"
@@ -315,12 +363,18 @@
           
           • Ciclos: {{ states('counter.pump_daily_cycles') }}
           • Runtime: {{ states('sensor.bomba_runtime_hoje') }}h
-          • Consumo: {{ states('sensor.pump_energy_daily') }} kWh
+          • Consumo: {{ states('sensor.bomba_energia_hoje') }} kWh
           • Custo: R$ {{ states('sensor.bomba_custo_hoje') }}
           • Eficiência: {{ states('sensor.bomba_eficiencia') }} min/ciclo
           
+          **Corrente:**
+          • Média: {{ states('sensor.bomba_corrente_media') }}A
+          • Mínima: {{ states('sensor.bomba_corrente_minima') }}A
+          • Máxima: {{ states('sensor.bomba_corrente_maxima') }}A
+          
           **Status:**
           • Timeouts: {{ states('counter.pump_timeout_events') }}
+          • Alertas corrente: {{ states('counter.pump_current_alerts') }}
           • Sistema: {{ states('sensor.bomba_sistema_status') }}
         notification_id: pump_daily_report
     

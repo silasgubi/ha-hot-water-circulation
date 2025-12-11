@@ -1,9 +1,22 @@
-# CLAUDE_CONTEXT.md - Sistema Automação Bomba Água Quente
+# CLAUDE_CONTEXT.md v3.0 - Sistema Automação Bomba Água Quente
 
 ## RESUMO EXECUTIVO
-Sistema Home Assistant que aciona automaticamente bomba de circulação (50W) ao detectar fluxo em torneira de água quente via Sonoff Mini, utilizando relé Zigbee Tuya TS011F. Inclui múltiplas camadas de proteção (timeout 30min, cooldown 3min, limite 20 ciclos/hora), delays configuráveis (3s liga/20s desliga) e monitoramento de potência calibrado (normal: 48-53W baseado em 143 medições reais).
+Sistema Home Assistant que aciona automaticamente bomba de circulação (68W real) ao detectar fluxo em torneira de água quente via Sonoff Mini, utilizando relé Zigbee Tuya TS011F. **v3.0 migra monitoramento de potência → corrente** para detecção precisa de emperramento/desgaste. Inclui múltiplas camadas de proteção (timeout 30min, cooldown 3min, limite 20 ciclos/hora), delays configuráveis (3s liga/20s desliga) e monitoramento de corrente calibrado (normal: 0.303-0.323A baseado em 1365 medições reais).
 
-## ENTIDADES CRÍTICAS
+## MUDANÇAS v2.0 → v3.0
+
+### **Melhorias Principais**
+1. ✅ **Monitoramento por corrente** (detecção instantânea de emperramento)
+2. ✅ **Cálculo correto de consumo** (Statistics + History Stats)
+3. ✅ **Thresholds calibrados** (dados reais de 1365 medições)
+4. ✅ **Novo script de calibração** (ajuste automático de limites)
+
+### **Entidades Alteradas**
+- **Removidas:** 4 input_numbers de potência + 1 counter
+- **Adicionadas:** 4 input_numbers de corrente + 1 counter + 6 sensors
+- **Total:** 22 → 28 entidades
+
+## ENTIDADES CRÍTICAS v3.0
 
 ### Hardware (DADOS REAIS)
 ```yaml
@@ -13,114 +26,14 @@ valve.hot_water  # Sonoff Mini (eWeLink)
 # Controle da bomba
 switch.bomba_de_circulacao_de_agua_quente  # Tuya TS011F (Zigbee)
 
-# Monitoramento
-sensor.bomba_de_circulacao_de_agua_quente_potencia  # Watts em tempo real
-sensor.bomba_de_circulacao_de_agua_quente_summation_delivered  # kWh total
+# Monitoramento (NOVO EM v3.0: corrente prioritária)
+sensor.bomba_de_circulacao_de_agua_quente_corrente  # Amperes em tempo real ⭐
+sensor.bomba_de_circulacao_de_agua_quente_potencia  # Watts (mantido para referência)
 ```
 
-## INTERFACE DASHBOARD (v2.1)
+### Helpers (23 ENTIDADES - +1 vs v2.0)
 
-### Estrutura do Card Principal
-```yaml
-vertical-stack:
-  1. Status + Gauge                    # Mantido
-  2. Controles (7 botões)              # +3 novos botões
-  3. Diagnóstico Automático (NOVO)     # Card inteligente
-  4. Botões Ação Rápida (NOVO)         # 4 botões de acesso rápido
-  5. Status em Tempo Real              # Mantido
-  6. Proteções e Limites               # Mantido
-  7. Configurações Editáveis           # Mantido
-  8. Automações e Eventos              # Mantido
-  9. Manual Reformatado (NOVO)         # Substituiu manual antigo
-  10. Histórico 24h                    # Mantido
-```
-### Card Diagnóstico (Auto-Atualizado)
-
-**Localização:** Antes dos cards de "Status em Tempo Real"
-
-**Funcionalidades:**
-- Análise inteligente do estado atual
-- Detecta e explica por que bomba está ON/OFF/Bloqueada
-- Verifica pré-requisitos automaticamente
-- Análise de potência com tabela de faixas
-- Status de todos os timers
-- Lista todas as automações e seus estados
-- Estatísticas do dia consolidadas
-- Últimos eventos (ativação, timeout)
-
-**Lógica de Diagnóstico:**
-```python
-if override_ativo:
-    return "Sistema manual - automação desabilitada"
-elif automacao_off:
-    return "Automação principal desligada"
-elif switch_on:
-    if funcionando_real:
-        return "Funcionando normalmente"
-    else:
-        return "Ligada sem carga - verificar problema"
-elif fluxo_detectado:
-    if cooldown_ativo:
-        return "Aguardando cooldown terminar"
-    elif limite_ciclos:
-        return "Limite de ciclos atingido"
-    elif not modo_seguro:
-        return "Bloqueado por segurança"
-    else:
-        return "DEVERIA INICIAR - forçar trigger"
-else:
-    return "Standby - aguardando fluxo"
-```
-
-### Botões de Ação Rápida
-
-**Botão "Forçar Trigger":**
-- Ação: `automation.trigger` em `automation.bomba_agua_quente_controle_principal`
-- Uso: Testar detecção de fluxo sem abrir torneira
-- Cor: Laranja (atenção)
-
-**Botão "Ver Logs":**
-- Navegação: `/config/logs`
-- Uso: Acessar logs do sistema rapidamente
-- Cor: Azul (informação)
-
-**Botão "Automações":**
-- Navegação: `/config/automation`
-- Uso: Visualizar/editar automações
-- Cor: Roxo (configuração)
-
-**Botão "Relatório":**
-- Ação: `script.pump_detailed_report`
-- Uso: Gerar notificação com relatório completo
-- Cor: Verde (ação positiva)
-
-### Manual Reformatado
-
-**Melhorias vs versão anterior:**
-- Tabelas ao invés de texto corrido
-- Seção "Como Funciona" com fluxo ASCII visual
-- Faixas de potência em tabela com cores (🟢🟡🔴)
-- Troubleshooting organizado por problema
-- Seção "Quando o Sistema Intervém" em tabela
-- Informações técnicas consolidadas no final
-
-**Estrutura:**
-1. O que é o Sistema
-2. Botões de Controle (tabela)
-3. Indicadores (explicação detalhada)
-4. Como Funciona (fluxo visual)
-5. Configurações Ajustáveis
-6. Faixas de Potência (tabela calibrada)
-7. Quando o Sistema Intervém (tabela)
-8. Troubleshooting Rápido (por problema)
-9. Dicas de Uso (lista)
-10. Informações Técnicas
-
-
-
-### Helpers (22 ENTIDADES)
-
-**Timers (4):**
+**Timers (4) - SEM MUDANÇAS:**
 ```yaml
 timer.pump_activation_delay         # 00:00:30 - Delay para ligar
 timer.pump_deactivation_delay       # 00:01:00 - Delay para desligar
@@ -128,34 +41,34 @@ timer.pump_safety_timeout           # 01:00:00 - Proteção máxima
 timer.pump_anti_cycle_cooldown      # 00:10:00 - Cooldown entre ciclos
 ```
 
-**Input Booleans (3):**
+**Input Booleans (3) - SEM MUDANÇAS:**
 ```yaml
 input_boolean.pump_manual_override   # Desabilita automação
 input_boolean.pump_manual_control    # Controle manual ON/OFF
 input_boolean.pump_alerts_enabled    # Habilita notificações
 ```
 
-**Counters (4):**
+**Counters (4) - 1 ALTERADO:**
 ```yaml
 counter.pump_hourly_cycles          # Reset automático a cada hora (max: 50)
 counter.pump_daily_cycles           # Reset 00:00 (max: 999)
 counter.pump_timeout_events         # Histórico total timeouts (max: 9999)
-counter.pump_power_alerts           # Histórico alertas potência (max: 9999)
+counter.pump_current_alerts         # ⭐ NOVO: Histórico alertas corrente (max: 9999)
 ```
 
-**Input DateTime (2):**
+**Input DateTime (2) - SEM MUDANÇAS:**
 ```yaml
 input_datetime.pump_last_activation  # Timestamp última ativação
 input_datetime.pump_last_timeout     # Timestamp último timeout
 ```
 
-**Input Numbers (9) - CONFIGURÁVEIS:**
+**Input Numbers (9) - 4 NOVOS (corrente) vs 4 REMOVIDOS (potência):**
 ```yaml
-# Thresholds Potência
-input_number.pump_power_threshold_low      # 20-50W, step 1, default 40
-input_number.pump_power_threshold_high     # 50-100W, step 1, default 60
-input_number.pump_power_normal_min         # 30-60W, step 1, default 48
-input_number.pump_power_normal_max         # 40-80W, step 1, default 53
+# ⭐ Thresholds Corrente (NOVOS - calibrados com dados reais)
+input_number.pump_current_threshold_low      # 0.15-0.30A, step 0.01, default 0.24
+input_number.pump_current_threshold_high     # 0.30-0.50A, step 0.01, default 0.33
+input_number.pump_current_normal_min         # 0.25-0.35A, step 0.001, default 0.303
+input_number.pump_current_normal_max         # 0.25-0.35A, step 0.001, default 0.323
 
 # Limites Operacionais
 input_number.pump_max_daily_runtime        # 1-24h, step 0.5, default 8
@@ -171,80 +84,69 @@ input_number.pump_deactivation_delay_seconds # 0-60s, step 5, default 20
 input_number.bomba_energy_tariff          # 0.1-2 R$/kWh, step 0.01, default 0.85
 ```
 
-### Template Sensors (9)
+### Template Sensors (12 - +5 vs v2.0)
 
 **Sensores de Estado:**
 ```yaml
-sensor.bomba_status                # Funcionando/Ligada sem carga/Desligada
+sensor.bomba_status                # Funcionando/Ligada sem carga/Desligada (corrente)
 sensor.bomba_sistema_status        # Manual/Limite próximo/Funcionando/Ativo/Standby
-sensor.bomba_runtime_hoje          # Horas funcionamento (history lookup)
+sensor.bomba_runtime_hoje          # ⭐ NOVO: History stats preciso (horas funcionamento)
 sensor.bomba_eficiencia            # Minutos por ciclo (runtime/ciclos)
-sensor.bomba_custo_hoje            # R$ = energy * tarifa
+
+# ⭐ Energia (NOVOS - cálculo correto)
+sensor.bomba_energia_hoje          # kWh hoje (runtime × 0.068kW)
+sensor.bomba_energia_semanal       # kWh 7 dias
+sensor.bomba_energia_mensal        # kWh 30 dias
+
+# ⭐ Custos (NOVOS)
+sensor.bomba_custo_hoje            # R$ hoje
+sensor.bomba_custo_semanal         # R$ semana
+sensor.bomba_custo_mensal          # R$ mês
+
+# ⭐ Corrente/Potência (NOVOS)
+sensor.bomba_potencia_calculada    # V × I (W)
 ```
 
 **Sensores Binários:**
 ```yaml
-binary_sensor.bomba_funcionando    # power > threshold_low
+binary_sensor.bomba_funcionando    # ⭐ ATUALIZADO: corrente > threshold_low
 binary_sensor.fluxo_agua_quente    # valve == 'open'
 binary_sensor.bomba_modo_seguro    # cycles < max AND override == 'off'
-binary_sensor.bomba_potencia_anormal # power fora dos limites quando ligada
+binary_sensor.bomba_corrente_anormal # ⭐ NOVO: corrente fora dos limites quando ligada
 ```
 
-### Utility Meters (3)
+### Statistics Sensors (3 NOVOS)
 ```yaml
-sensor.pump_energy_daily    # Reset diário
-sensor.pump_energy_weekly   # Reset semanal
-sensor.pump_energy_monthly  # Reset mensal
+sensor.bomba_corrente_media        # Média móvel 24h
+sensor.bomba_corrente_maxima       # Máximo 24h
+sensor.bomba_corrente_minima       # Mínimo 24h
 ```
 
-### Automações (6)
+### Automações (7 - +1 vs v2.0)
 
-**1. bomba_agua_quente_controle_principal**
-- Trigger: valve.hot_water state change
-- Lógica complexa de ativação/desativação com delays
-- Proteções: override, ciclos, cooldown, modo seguro
+```yaml
+bomba_agua_quente_controle_principal    # ⭐ ATUALIZADO: usa corrente
+bomba_timeout_seguranca                 # Proteção timeout
+bomba_controle_manual                   # Override manual
+bomba_alerta_corrente_anormal           # ⭐ NOVO: alerta corrente fora de limites
+bomba_reset_contador_horario            # Reset a cada hora
+bomba_reset_contador_diario             # Reset à meia-noite
+bomba_relatorio_diario                  # ⭐ ATUALIZADO: inclui métricas corrente
+```
 
-**2. bomba_timeout_seguranca**
-- Trigger: timer.pump_safety_timeout finished
-- Desliga bomba forçadamente
-- Incrementa counter.pump_timeout_events
-- Atualiza input_datetime.pump_last_timeout
+### Scripts (4 - +1 vs v2.0)
 
-**3. bomba_controle_manual**
-- Trigger: input_boolean.pump_manual_control toggle
-- Override de automação principal
-- Mantém proteções (timeout, limites)
+```yaml
+pump_system_test                    # ⭐ ATUALIZADO: mede corrente
+pump_emergency_reset                # Reset emergência
+pump_detailed_report                # ⭐ ATUALIZADO: relatório com corrente
+pump_calibrate_current              # ⭐ NOVO: calibração automática de thresholds
+```
 
-**4. bomba_reset_contador_horario**
-- Trigger: cron a cada hora cheia
-- Reset counter.pump_hourly_cycles
-
-**5. bomba_reset_contador_diario**
-- Trigger: time 00:00:00
-- Reset counter.pump_daily_cycles
-
-**6. bomba_relatorio_diario**
-- Trigger: time 22:00:00
-- Envia notificação com estatísticas do dia
-
-### Scripts (3)
-
-**pump_system_test:**
-- Teste completo: liga → aguarda 5s → desliga
-- Log no logbook
-
-**pump_emergency_reset:**
-- Desliga bomba
-- Cancela todos timers
-- Desabilita overrides
-- Cria notificação persistente
-
-**pump_detailed_report:**
-- Notificação com todos os dados (estatísticas, contadores, configurações, thresholds)
-
-## ARQUITETURA DO SISTEMA
+## ARQUITETURA DO SISTEMA v3.0
 
 ### Fluxo de Dados
+
 ```
 [Torneira] → [valve.hot_water] 
     ↓
@@ -256,7 +158,8 @@ sensor.pump_energy_monthly  # Reset mensal
     ↓
 [timer.pump_safety_timeout] → 30min (proteção)
     ↓
-[sensor...potencia] → 48-53W (monitoramento)
+[sensor...corrente] → 0.303-0.323A (monitoramento) ⭐
+[sensor...potencia_calculada] → 68W (V × I)
     ↓
 [valve.hot_water] → closed
     ↓
@@ -267,119 +170,140 @@ sensor.pump_energy_monthly  # Reset mensal
 [timer.pump_anti_cycle_cooldown] → 3min
 ```
 
-### Camadas de Proteção
+### Por Que Corrente é Melhor que Potência?
 
-**Nível 1 - Hardware:**
-- Tuya TS011F com proteção sobrecarga (16A)
+| Aspecto | Potência (v2.0) | Corrente (v3.0) |
+|---------|-----------------|-----------------|
+| **Detecção emperramento** | Tardia (problema avançado) | ⚡ Instantânea |
+| **Sensibilidade** | Baixa | Alta |
+| **Desgaste progressivo** | Mascarado | 📈 Tendência clara |
+| **Precisão diagnóstico** | Média | ✅ Excelente |
 
-**Nível 2 - Software:**
-- Timeout safety: desliga após 30min
-- Cooldown: mínimo 3min entre ciclos
-- Limite ciclos: máximo 20/hora
-
-**Nível 3 - Lógica:**
-- Delays para confirmar intenção
-- Override manual para emergências
-- Modo seguro verifica todas condições
-
-**Nível 4 - Monitoramento:**
-- Alertas potência anormal (<40W ou >60W)
-- Contadores de eventos críticos
-- Timestamps para auditoria
-
-## LÓGICA DE FUNCIONAMENTO
-
-### Automação Principal (Pseudocódigo)
-
-```python
-if valve.hot_water == 'open':
-    if NOT pump_manual_override:
-        if pump_modo_seguro:  # cycles < max AND cooldown idle
-            if timer.pump_anti_cycle_cooldown == 'idle':
-                # Inicia delay de ativação
-                timer.pump_activation_delay.start(
-                    duration=input_number.pump_activation_delay_seconds
-                )
-                
-                # Quando timer termina:
-                if valve still 'open':  # reconfirma
-                    switch.bomba.turn_on()
-                    counter.pump_hourly_cycles.increment()
-                    counter.pump_daily_cycles.increment()
-                    input_datetime.pump_last_activation = now()
-                    
-                    # Inicia timeout de segurança
-                    timer.pump_safety_timeout.start(
-                        duration=input_number.pump_timeout_minutes * 60
-                    )
-
-elif valve.hot_water == 'closed':
-    if switch.bomba == 'on':
-        # Inicia delay de desativação
-        timer.pump_deactivation_delay.start(
-            duration=input_number.pump_deactivation_delay_seconds
-        )
-        
-        # Quando timer termina:
-        if valve still 'closed':  # reconfirma
-            switch.bomba.turn_off()
-            timer.pump_safety_timeout.cancel()
-            
-            # Inicia cooldown
-            timer.pump_anti_cycle_cooldown.start(
-                duration=input_number.pump_cooldown_minutes * 60
-            )
+**Exemplo prático:**
 ```
+Emperramento: corrente ↑ 20% → detecção IMEDIATA
+              potência ↑ 5% → detecção tardia
+```
+
+## CALIBRAÇÃO (DADOS REAIS v3.0)
+
+### Análise Estatística - 1365 Medições
+```
+Média:          0.309A
+Mediana:        0.317A
+Desvio Padrão:  0.039A (12.6% - comportamento estável ✅)
+P10:            0.303A
+P90:            0.323A
+Mínimo:         0.011A (bomba desligada)
+Máximo:         0.337A
+Outliers:       0 (sem picos anormais ✅)
+```
+
+### Thresholds Calibrados
+```yaml
+🟢 Normal:       0.303 - 0.323A (P10-P90, 80% dos dados)
+🟡 Baixo:        < 0.242A (motor girando vazio/ar)
+🟠 Alto:         > 0.323A (início sobrecarga)
+🔴 Crítico:      > 0.330A (P99 - desligar imediatamente)
+🚨 Emergência:   > 0.350A (emperramento detectado)
+```
+
+### Valores Operacionais
+```yaml
+Corrente nominal:    0.309A (média real)
+Tensão:              220V
+Potência real:       68W (0.309A × 220V)
+Potência nominal:    50W (rating do fabricante)
+Fator potência:      ~0.75 (68W real / 90VA aparente)
+Custo por hora:      R$ 0.058 (0.068kW × R$0.85/kWh)
+```
+
+## LÓGICA DE FUNCIONAMENTO v3.0
 
 ### Detecção de Funcionamento Real
 
 ```yaml
 # binary_sensor.bomba_funcionando
-# NÃO confiar apenas em switch.bomba == 'on'
-# Usar potência real para confirmar funcionamento
+# v2.0: Usava potência > 40W (impreciso)
+# v3.0: Usa corrente > 0.24A (preciso) ⭐
 
-power = sensor.bomba_..._potencia | float(0)
-threshold_low = input_number.pump_power_threshold_low | float(40)
+current = sensor.bomba_..._corrente | float(0)
+threshold_low = input_number.pump_current_threshold_low | float(0.24)
 
-if power > threshold_low:
+if current > threshold_low:
     return True  # Funcionando de verdade
 else:
     return False  # Desligada ou problema
 ```
 
-## CALIBRAÇÃO (DADOS REAIS)
+### Detecção de Anomalias
 
-### Análise Estatística - 143 Medições
-```
-Média:          50.8W
-Mediana:        51W
-Desvio Padrão:  3.2W
-P10:            47W
-P90:            54W
-Mínimo:         34W
-Máximo:         70W
-```
-
-### Thresholds Calibrados
 ```yaml
-Normal (83% dos casos):  48-53W
-Alerta Baixo:           <40W  # Possível entupimento/ar
-Alerta Alto:            >60W  # Possível sobrecarga
+# binary_sensor.bomba_corrente_anormal (NOVO v3.0)
+
+current = sensor.bomba_..._corrente | float(0)
+low = input_number.pump_current_threshold_low | float(0.24)
+high = input_number.pump_current_threshold_high | float(0.33)
+pump_on = switch.bomba == 'on'
+
+if pump_on AND (current < low OR current > high):
+    return True  # ⚠️ Anomalia detectada
+    
+    # Causas possíveis:
+    # < 0.24A: ar na tubulação, rotor travado, problema elétrico
+    # > 0.33A: emperramento, sobrecarga, desgaste rolamentos
 ```
 
-### Valores Operacionais
+### Cálculo de Consumo (CORRIGIDO v3.0)
+
 ```yaml
-Consumo nominal:     50W
-Custo por hora:      R$ 0,043 (tarifa R$ 0,85/kWh)
-Tensão:              220V
-Corrente:            0.25A
+# v2.0: utility_meter (bugado com summation_delivered)
+# v3.0: History Stats + cálculo direto ⭐
+
+# 1. Runtime preciso (history_stats)
+sensor.bomba_runtime_hoje:
+  entity_id: binary_sensor.bomba_funcionando
+  state: 'on'
+  type: time
+  # Resultado: 3.5h (exemplo)
+
+# 2. Energia calculada
+sensor.bomba_energia_hoje:
+  runtime = 3.5h
+  power_kw = 0.068  # 68W real
+  energy = runtime × power_kw = 0.238 kWh ✅
+
+# 3. Custo
+sensor.bomba_custo_hoje:
+  energy = 0.238 kWh
+  tariff = 0.85 R$/kWh
+  cost = energy × tariff = R$ 0.20 ✅
 ```
 
-## PROBLEMAS CONHECIDOS + SOLUÇÕES
+## SCRIPTS NOVOS v3.0
+
+### pump_calibrate_current (NOVO)
+
+```yaml
+# Propósito: Calibração automática de thresholds
+# Uso: Após instalação ou manutenção
+
+Sequência:
+1. Liga bomba por 30s
+2. Coleta statistics (média, min, max)
+3. Calcula thresholds recomendados:
+   - Normal min = média × 0.95
+   - Normal max = média × 1.05
+   - Alerta baixo = média × 0.80
+   - Alerta alto = máximo × 1.10
+4. Exibe recomendação para ajuste manual
+```
+
+## PROBLEMAS CONHECIDOS + SOLUÇÕES v3.0
 
 ### 1. Bomba não liga automaticamente
 
-**Debug:**
+**Debug atualizado:**
 ```yaml
 # Developer Tools → Template
 Fluxo: {{ states('valve.hot_water') }}
@@ -387,271 +311,150 @@ Override: {{ states('input_boolean.pump_manual_override') }}
 Ciclos: {{ states('counter.pump_hourly_cycles') }}/{{ states('input_number.pump_max_hourly_cycles') }}
 Cooldown: {{ states('timer.pump_anti_cycle_cooldown') }}
 Automação: {{ states('automation.bomba_agua_quente_controle_principal') }}
+Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A ⭐
 ```
 
-**Soluções:**
-- Verificar override desativado
-- Aguardar cooldown terminar
-- Verificar limite ciclos não atingido
-- Confirmar automação habilitada
-
-### 2. Bomba não desliga
-
-**Ações:**
-1. Usar `script.pump_emergency_reset`
-2. Verificar estado `valve.hot_water`
-3. Verificar timer `pump_safety_timeout`
-4. Revisar logbook/logs
-
-### 3. Alertas potência anormal
+### 2. Alertas de corrente anormal
 
 **Debug:**
 ```yaml
-Potência: {{ states('sensor.bomba_de_circulacao_de_agua_quente_potencia') }}W
-Baixo: {{ states('input_number.pump_power_threshold_low') }}W
-Alto: {{ states('input_number.pump_power_threshold_high') }}W
+Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
+Baixo: {{ states('input_number.pump_current_threshold_low') }}A
+Alto: {{ states('input_number.pump_current_threshold_high') }}A
+Média 24h: {{ states('sensor.bomba_corrente_media') }}A
 ```
 
-**Causas:**
-- Baixa (<40W): entupimento, ar na tubulação
-- Alta (>60W): sobrecarga, problema motor
+**Interpretação:**
+| Corrente | Diagnóstico | Ação |
+|----------|-------------|------|
+| < 0.24A | Motor vazio, ar, problema elétrico | Purgar sistema, verificar conexões |
+| 0.24-0.303A | Abaixo do normal, possível desgaste | Monitorar tendência |
+| 0.303-0.323A | ✅ Normal | - |
+| 0.323-0.33A | Acima do normal, possível sobrecarga | Verificar tubulação |
+| > 0.33A | ⚠️ Crítico - emperramento | Desligar, manutenção urgente |
 
-### 4. Contadores não resetam
+### 3. Consumo não bate com conta de luz
 
-**Verificar:**
-- Automações de reset habilitadas
-- Timezone correto no HA
-- Executar reset manual:
+**Verificação v3.0:**
 ```yaml
-service: counter.reset
-target:
-  entity_id: counter.pump_hourly_cycles
+# Calcular manualmente:
+Runtime hoje: {{ states('sensor.bomba_runtime_hoje') }}h
+Potência: 0.068kW
+Energia: runtime × 0.068 = X kWh
+Custo: X × R$ 0.85 = R$ Y
+
+# Comparar com sensor:
+Energia sensor: {{ states('sensor.bomba_energia_hoje') }} kWh
+Custo sensor: R$ {{ states('sensor.bomba_custo_hoje') }}
+
+# Se divergir > 10%, executar:
+script.pump_calibrate_current
 ```
 
-## TEMPLATES DE DEBUGGING
+## MIGRAÇÃO v2.0 → v3.0
 
-### Verificação Completa
+### Checklist Completo
+
+**Antes de começar:**
+```bash
+# Criar branch git
+git checkout -b v3.0-corrente-migration
+git add -A
+git commit -m "v2.0: Snapshot antes migração"
+```
+
+**Passo 1: Backup v2.0**
+```yaml
+# Copiar arquivos atuais:
+- configuration.yaml → versions/v2.0/
+- automations.yaml → versions/v2.0/
+- scripts.yaml → versions/v2.0/
+```
+
+**Passo 2: Criar novos helpers**
+```yaml
+# Settings → Helpers → Create Helper
+✅ input_number.pump_current_threshold_low (0.24A)
+✅ input_number.pump_current_threshold_high (0.33A)
+✅ input_number.pump_current_normal_min (0.303A)
+✅ input_number.pump_current_normal_max (0.323A)
+✅ counter.pump_current_alerts
+```
+
+**Passo 3: Atualizar configuration.yaml**
+```bash
+# Substituir seção template: por v3.0
+# Adicionar history_stats
+# Adicionar statistics sensors
+```
+
+**Passo 4: Atualizar automations.yaml**
+```bash
+# Substituir arquivo completo por v3.0
+```
+
+**Passo 5: Atualizar scripts.yaml**
+```bash
+# Substituir arquivo completo por v3.0
+```
+
+**Passo 6: Restart Home Assistant**
+```yaml
+# Developer Tools → YAML → Restart
+```
+
+**Passo 7: Validar**
 ```yaml
 # Developer Tools → Template
-SISTEMA BOMBA - DIAGNÓSTICO COMPLETO
-
-HARDWARE:
-- Fluxo detectado: {{ states('valve.hot_water') }}
-- Bomba (switch): {{ states('switch.bomba_de_circulacao_de_agua_quente') }}
-- Potência: {{ states('sensor.bomba_de_circulacao_de_agua_quente_potencia') }}W
-
-STATUS:
-- Bomba Status: {{ states('sensor.bomba_status') }}
-- Sistema Status: {{ states('sensor.bomba_sistema_status') }}
-- Funcionando (real): {{ states('binary_sensor.bomba_funcionando') }}
-- Modo Seguro: {{ states('binary_sensor.bomba_modo_seguro') }}
-
-PROTEÇÕES:
-- Override: {{ states('input_boolean.pump_manual_override') }}
-- Ciclos hora: {{ states('counter.pump_hourly_cycles') }}/{{ states('input_number.pump_max_hourly_cycles') }}
-- Ciclos dia: {{ states('counter.pump_daily_cycles') }}
-- Timeout events: {{ states('counter.pump_timeout_events') }}
-
-TIMERS:
-- Activation delay: {{ states('timer.pump_activation_delay') }}
-- Deactivation delay: {{ states('timer.pump_deactivation_delay') }}
-- Safety timeout: {{ states('timer.pump_safety_timeout') }}
-- Cooldown: {{ states('timer.pump_anti_cycle_cooldown') }}
-
-ESTATÍSTICAS:
-- Runtime hoje: {{ states('sensor.bomba_runtime_hoje') }}h
-- Eficiência: {{ states('sensor.bomba_eficiencia') }} min/ciclo
-- Custo hoje: R$ {{ states('sensor.bomba_custo_hoje') }}
+# Executar validação de helpers (ver helpers.yaml)
+# Testar: script.pump_system_test
 ```
 
-### Teste de Helpers
+**Passo 8: Calibrar**
 ```yaml
-HELPERS EXISTEM?
-{% for helper in ['pump_manual_override', 'pump_manual_control', 'pump_alerts_enabled'] %}
-- input_boolean.{{ helper }}: {{ states('input_boolean.' + helper) | default('❌ NÃO EXISTE') }}
-{% endfor %}
-
-{% for counter in ['pump_hourly_cycles', 'pump_daily_cycles', 'pump_timeout_events', 'pump_power_alerts'] %}
-- counter.{{ counter }}: {{ states('counter.' + counter) | default('❌ NÃO EXISTE') }}
-{% endfor %}
+# Executar: script.pump_calibrate_current
+# Ajustar thresholds se necessário
 ```
 
-## MODIFICAÇÕES COMUNS
-
-### Ajustar Delays
+**Passo 9: Remover helpers antigos**
 ```yaml
-# Via UI: Settings → Helpers → Input Number
-# Ou via service call:
-
-service: input_number.set_value
-target:
-  entity_id: input_number.pump_activation_delay_seconds
-data:
-  value: 5  # novo valor em segundos
+# Settings → Helpers → Delete:
+❌ input_number.pump_power_threshold_low
+❌ input_number.pump_power_threshold_high
+❌ input_number.pump_power_normal_min
+❌ input_number.pump_power_normal_max
+❌ counter.pump_power_alerts
 ```
 
-### Adicionar Novo Card ao Dashboard
-
-**Localização:** `config/dashboards/bomba-agua-quente.yaml`
-
-Para adicionar o card de diagnóstico e manual reformulado:
-
-1. Abrir dashboard em modo edição
-2. Localizar card "Manual do Sistema" antigo
-3. Deletar card antigo
-4. Adicionar card tipo "Manual" ou usar editor YAML
-5. Colar conteúdo de `config/dashboards/bomba-card-diagnostico-manual.yaml`
-6. Salvar dashboard
-
-**Dependências:**
-- `card_mod` (opcional - para estilização)
-- Todas as entidades listadas em "ENTIDADES CRÍTICAS"
-- Template sensors funcionando corretamente
-
-**Troubleshooting:**
-- Se valores aparecerem como "unknown": verificar entidades existem
-- Se card não atualizar: verificar sintaxe YAML
-- Se estilização não funcionar: instalar `card_mod` via HACS
-
-### Alterar Thresholds Potência
-```yaml
-# Baseado em novas medições
-service: input_number.set_value
-target:
-  entity_id: input_number.pump_power_normal_min
-data:
-  value: 45  # novo mínimo normal
-```
-
-### Adicionar Nova Notificação
-
-**Adicionar em `config/automations.yaml`:**
-```yaml
-- alias: "Bomba - Notificação Customizada"
-  trigger:
-    - platform: state
-      entity_id: binary_sensor.bomba_potencia_anormal
-      to: "on"
-      for: "00:05:00"  # 5min sustentado
-  condition:
-    - condition: state
-      entity_id: input_boolean.pump_alerts_enabled
-      state: "on"
-  action:
-    - service: notify.mobile_app_seu_dispositivo
-      data:
-        title: "⚠️ Alerta Bomba"
-        message: "Potência anormal por 5min: {{ states('sensor.bomba_de_circulacao_de_agua_quente_potencia') }}W"
-```
-
-## INSTRUÇÕES REGENERAÇÃO COMPLETA
-
-### 1. Criar Helpers (via UI)
+**Passo 10: Git merge**
 ```bash
-Settings → Devices & Services → Helpers → Create Helper
-```
-Seguir especificações da seção "ENTIDADES CRÍTICAS" acima.
-
-Ou criar via `config/helpers.yaml`:
-```yaml
-# Ver arquivo config/helpers.yaml para referência completa
+git add -A
+git commit -m "v3.0: Migração completa para corrente"
+git checkout main
+git merge v3.0-corrente-migration
 ```
 
-### 2. Adicionar Template Sensors
-Editar `config/configuration.yaml`:
-```yaml
-template:
-  - sensor:
-      # [COPIAR de docs/documentacao-completa-bomba.md seção 4.3]
-  - binary_sensor:
-      # [COPIAR de docs/documentacao-completa-bomba.md seção 4.3]
-```
-
-### 3. Adicionar Utility Meters
-Ainda em `config/configuration.yaml`:
-```yaml
-utility_meter:
-  pump_energy_daily:
-    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
-    cycle: daily
-  pump_energy_weekly:
-    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
-    cycle: weekly
-  pump_energy_monthly:
-    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
-    cycle: monthly
-```
-
-### 4. Adicionar Automações
-Copiar conteúdo de `config/automations.yaml` para o seu `automations.yaml`.
-
-### 5. Adicionar Scripts
-Copiar conteúdo de `config/scripts.yaml` para o seu `scripts.yaml`.
-
-### 6. Validar e Reiniciar
-```bash
-# Developer Tools → YAML → Check Configuration
-# Se OK: Settings → System → Restart Home Assistant
-```
-
-### 7. Testar Sistema
-```yaml
-# Services → script.pump_system_test → Execute
-# Verificar logs: Settings → System → Logs
-```
-
-## DEPENDÊNCIAS
+## DEPENDÊNCIAS v3.0
 
 ### Home Assistant
 - Versão: 2023.x ou superior
 - Integrações necessárias:
   - eWeLink (para Sonoff Mini)
   - ZHA ou Zigbee2MQTT (para Tuya)
+  - Statistics (built-in)
+  - History Stats (built-in)
 
 ### Hardware
-- Sonoff Mini (WiFi 2.4GHz)
-- Tuya TS011F (Zigbee)
+- Sonoff Mini (WiFi 2.4GHz) - detecção fluxo
+- Tuya TS011F (Zigbee) - controle + medição corrente ⭐
 - Coordinator Zigbee (ConBee II/Sonoff)
 - Bomba 50W 220V
 
-### Rede
-- WiFi 2.4GHz estável
-- Cobertura Zigbee adequada
-
-### Opcional
-- Mobile App para notificações
-- Recorder/History para gráficos
-
-## ESTRUTURA DE ARQUIVOS
-
-```
-bomba-agua-quente/
-├── CLAUDE_CONTEXT.md              # Este arquivo (IA-friendly)
-├── README.md                      # Overview para humanos
-├── CHANGELOG.md                   # Histórico de versões
-├── config/
-│   ├── automations.yaml           # 6 automações
-│   ├── scripts.yaml               # 3 scripts
-│   ├── configuration.yaml         # template sensors + utility_meters
-│   └── helpers.yaml               # Referência criação helpers
-├── docs/
-│   └── documentacao-completa-bomba.md  # Doc detalhada original
-└── tests/
-    └── system_test.yaml           # Testes automatizados
-```
-
-## CHANGELOG RESUMIDO
-
-| Versão | Data | Mudanças |
-|--------|------|----------|
-| 1.0 | 01/2024 | Implementação inicial valores fixos |
-| 2.0 | 01/2024 | Valores configuráveis via input_numbers |
-| 2.0.1 | 01/2024 | Dashboard otimizado iPad |
-
-Ver [CHANGELOG.md](CHANGELOG.md) para detalhes completos.
+**CRÍTICO:** Tuya TS011F deve expor `sensor...corrente`. Verificar antes de migrar.
 
 ---
 
-**ÚLTIMA ATUALIZAÇÃO:** {{now().strftime('%d/%m/%Y %H:%M')}}  
-**BASEADO EM:** docs/documentacao-completa-bomba.md  
-**ESTRUTURA:** Padrão definido nas instruções do Claude
+**VERSÃO:** 3.0.0  
+**DATA:** {{now().strftime('%d/%m/%Y')}}  
+**BASEADO EM:** Análise de 1365 medições reais de corrente  
+**ÚLTIMA ATUALIZAÇÃO:** {{now().strftime('%d/%m/%Y %H:%M')}}

@@ -1,15 +1,19 @@
-# Configuration - Sistema Bomba Água Quente v2.0
-# Adicionar ao seu configuration.yaml existente
+# Configuration v3.0 - Sistema Bomba Água Quente
+# Migração: Potência → Corrente + Statistics
+# ADICIONAR ao seu configuration.yaml existente
 
+# ============================================
 # TEMPLATE SENSORS
+# ============================================
 template:
   - sensor:
-      # Status da Bomba
+      # Status da Bomba (baseado em corrente agora)
       - name: "Bomba Status"
-        unique_id: bomba_status
+        unique_id: bomba_status_v3
         state: >
-          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
-          {% if power > 35 %}
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set threshold = states('input_number.pump_current_threshold_low') | float(0.24) %}
+          {% if current > threshold %}
             Funcionando
           {% elif states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
             Ligada sem carga
@@ -18,26 +22,97 @@ template:
           {% endif %}
         icon: mdi:pump
 
-      # Runtime Hoje
-      - name: "Bomba Runtime Hoje"
-        unique_id: bomba_runtime_hoje
-        unit_of_measurement: "h"
+      # Potência Calculada (V × I)
+      - name: "Bomba Potência Calculada"
+        unique_id: bomba_potencia_calculada_v3
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set voltage = 220 %}
+          {{ (current * voltage) | round(1) }}
+        icon: mdi:lightning-bolt
+
+      # Energia Hoje (calculada corretamente)
+      - name: "Bomba Energia Hoje"
+        unique_id: bomba_energia_hoje_v3
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        state: >
+          {% set runtime = states('sensor.bomba_runtime_hoje') | float(0) %}
+          {% set power_kw = 0.068 %}
+          {{ (runtime * power_kw) | round(3) }}
+        icon: mdi:flash
+
+      # Energia Semanal (acumulado 7 dias)
+      - name: "Bomba Energia Semanal"
+        unique_id: bomba_energia_semanal_v3
+        unit_of_measurement: "kWh"
+        device_class: energy
         state: >
           {% set ns = namespace(total=0) %}
-          {% if has_value('sensor.bomba_de_circulacao_de_agua_quente_potencia') %}
-            {% set today = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
-            {% for state in states.sensor.bomba_de_circulacao_de_agua_quente_potencia.history(start_time=today) %}
-              {% if state.state | float(0) > 35 %}
-                {% set ns.total = ns.total + 0.083 %}
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-          {{ ns.total | round(1) }}
-        icon: mdi:timer-outline
+          {% set days = 7 %}
+          {% for i in range(days) %}
+            {% set day = (now() - timedelta(days=i)).replace(hour=0, minute=0, second=0) %}
+            {% set day_end = day + timedelta(days=1) %}
+            {% set runtime = states.sensor.bomba_runtime_hoje.history(start_time=day, end_time=day_end) | map(attribute='state') | map('float', 0) | sum %}
+            {% set ns.total = ns.total + (runtime * 0.068) %}
+          {% endfor %}
+          {{ ns.total | round(3) }}
+        icon: mdi:calendar-week
+
+      # Energia Mensal (acumulado 30 dias)
+      - name: "Bomba Energia Mensal"
+        unique_id: bomba_energia_mensal_v3
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {% set ns = namespace(total=0) %}
+          {% set days = 30 %}
+          {% for i in range(days) %}
+            {% set day = (now() - timedelta(days=i)).replace(hour=0, minute=0, second=0) %}
+            {% set day_end = day + timedelta(days=1) %}
+            {% set runtime = states.sensor.bomba_runtime_hoje.history(start_time=day, end_time=day_end) | map(attribute='state') | map('float', 0) | sum %}
+            {% set ns.total = ns.total + (runtime * 0.068) %}
+          {% endfor %}
+          {{ ns.total | round(3) }}
+        icon: mdi:calendar-month
+
+      # Custo Hoje
+      - name: "Bomba Custo Hoje"
+        unique_id: bomba_custo_hoje_v3
+        unit_of_measurement: "R$"
+        state: >
+          {% set energy = states('sensor.bomba_energia_hoje') | float(0) %}
+          {% set tariff = states('input_number.bomba_energy_tariff') | float(0.85) %}
+          {{ (energy * tariff) | round(2) }}
+        icon: mdi:currency-brl
+
+      # Custo Semanal
+      - name: "Bomba Custo Semanal"
+        unique_id: bomba_custo_semanal_v3
+        unit_of_measurement: "R$"
+        state: >
+          {% set energy = states('sensor.bomba_energia_semanal') | float(0) %}
+          {% set tariff = states('input_number.bomba_energy_tariff') | float(0.85) %}
+          {{ (energy * tariff) | round(2) }}
+        icon: mdi:currency-brl
+
+      # Custo Mensal
+      - name: "Bomba Custo Mensal"
+        unique_id: bomba_custo_mensal_v3
+        unit_of_measurement: "R$"
+        state: >
+          {% set energy = states('sensor.bomba_energia_mensal') | float(0) %}
+          {% set tariff = states('input_number.bomba_energy_tariff') | float(0.85) %}
+          {{ (energy * tariff) | round(2) }}
+        icon: mdi:currency-brl
 
       # Eficiência (minutos por ciclo)
       - name: "Bomba Eficiência"
-        unique_id: bomba_eficiencia
+        unique_id: bomba_eficiencia_v3
         unit_of_measurement: "min/ciclo"
         state: >
           {% set runtime = states('sensor.bomba_runtime_hoje') | float(0) %}
@@ -49,19 +124,9 @@ template:
           {% endif %}
         icon: mdi:speedometer
 
-      # Custo Hoje
-      - name: "Bomba Custo Hoje"
-        unique_id: bomba_custo_hoje
-        unit_of_measurement: "R$"
-        state: >
-          {% set energy = states('sensor.pump_energy_daily') | float(0) %}
-          {% set tariff = states('input_number.bomba_energy_tariff') | float(0.85) %}
-          {{ (energy * tariff) | round(2) }}
-        icon: mdi:currency-brl
-
       # Sistema Status
       - name: "Bomba Sistema Status"
-        unique_id: bomba_sistema_status
+        unique_id: bomba_sistema_status_v3
         state: >
           {% set override = states('input_boolean.pump_manual_override') %}
           {% set cycles = states('counter.pump_hourly_cycles') | int(0) %}
@@ -82,20 +147,22 @@ template:
           {% endif %}
         icon: mdi:information-outline
 
+  # ============================================
   # BINARY SENSORS
+  # ============================================
   - binary_sensor:
-      # Bomba Funcionando (baseado em potência real)
+      # Bomba Funcionando (baseado em corrente)
       - name: "Bomba Funcionando"
-        unique_id: bomba_funcionando
+        unique_id: bomba_funcionando_v3
         device_class: running
         state: >
-          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
-          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
-          {{ power > low }}
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set low = states('input_number.pump_current_threshold_low') | float(0.24) %}
+          {{ current > low }}
         icon: >
-          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
-          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
-          {% if power > low %}
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set low = states('input_number.pump_current_threshold_low') | float(0.24) %}
+          {% if current > low %}
             mdi:pump
           {% else %}
             mdi:pump-off
@@ -103,7 +170,7 @@ template:
 
       # Fluxo Água Quente
       - name: "Fluxo Água Quente"
-        unique_id: fluxo_agua_quente
+        unique_id: fluxo_agua_quente_v3
         device_class: opening
         state: "{{ states('valve.hot_water') == 'open' }}"
         icon: >
@@ -115,7 +182,7 @@ template:
 
       # Modo Seguro
       - name: "Bomba Modo Seguro"
-        unique_id: bomba_modo_seguro
+        unique_id: bomba_modo_seguro_v3
         device_class: safety
         state: >
           {% set cycles = states('counter.pump_hourly_cycles') | int(0) %}
@@ -132,48 +199,71 @@ template:
             mdi:shield-alert
           {% endif %}
 
-      # Potência Anormal
-      - name: "Bomba Potência Anormal"
-        unique_id: bomba_potencia_anormal
+      # Corrente Anormal (NOVO - substitui potência anormal)
+      - name: "Bomba Corrente Anormal"
+        unique_id: bomba_corrente_anormal_v3
         device_class: problem
         state: >
-          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
-          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
-          {% set high = states('input_number.pump_power_threshold_high') | float(60) %}
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set low = states('input_number.pump_current_threshold_low') | float(0.24) %}
+          {% set high = states('input_number.pump_current_threshold_high') | float(0.33) %}
           {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
           
-          {% if pump_on and (power < low or power > high) %}
+          {% if pump_on and (current < low or current > high) %}
             true
           {% else %}
             false
           {% endif %}
         icon: >
-          {% set power = states('sensor.bomba_de_circulacao_de_agua_quente_potencia') | float(0) %}
-          {% set low = states('input_number.pump_power_threshold_low') | float(40) %}
-          {% set high = states('input_number.pump_power_threshold_high') | float(60) %}
+          {% set current = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set low = states('input_number.pump_current_threshold_low') | float(0.24) %}
+          {% set high = states('input_number.pump_current_threshold_high') | float(0.33) %}
           {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
-          {% if pump_on and (power < low or power > high) %}
+          {% if pump_on and (current < low or current > high) %}
             mdi:flash-alert
           {% else %}
             mdi:flash
           {% endif %}
 
-# UTILITY METERS
-utility_meter:
-  # Consumo Diário
-  pump_energy_daily:
-    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
-    cycle: daily
-    name: "Bomba Energia Diário"
-    
-  # Consumo Semanal
-  pump_energy_weekly:
-    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
-    cycle: weekly
-    name: "Bomba Energia Semanal"
-    
-  # Consumo Mensal
-  pump_energy_monthly:
-    source: sensor.bomba_de_circulacao_de_agua_quente_summation_delivered
-    cycle: monthly
-    name: "Bomba Energia Mensal"
+# ============================================
+# HISTORY STATS - Runtime preciso
+# ============================================
+sensor:
+  - platform: history_stats
+    name: Bomba Runtime Hoje
+    unique_id: bomba_runtime_hoje_v3
+    entity_id: binary_sensor.bomba_funcionando
+    state: 'on'
+    type: time
+    start: '{{ now().replace(hour=0, minute=0, second=0, microsecond=0) }}'
+    end: '{{ now() }}'
+
+# ============================================
+# STATISTICS SENSORS - Análise de corrente
+# ============================================
+  - platform: statistics
+    name: Bomba Corrente Média
+    unique_id: bomba_corrente_media_v3
+    entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+    state_characteristic: mean
+    sampling_size: 1000
+    max_age:
+      hours: 24
+
+  - platform: statistics
+    name: Bomba Corrente Máxima
+    unique_id: bomba_corrente_maxima_v3
+    entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+    state_characteristic: value_max
+    sampling_size: 1000
+    max_age:
+      hours: 24
+
+  - platform: statistics
+    name: Bomba Corrente Mínima
+    unique_id: bomba_corrente_minima_v3
+    entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+    state_characteristic: value_min
+    sampling_size: 1000
+    max_age:
+      hours: 24

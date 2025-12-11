@@ -1,11 +1,11 @@
-# Helpers - Referência para Criação Manual
-# Sistema Bomba Água Quente v2.0
+# Helpers v3.0 - Referência para Criação Manual
+# Sistema Bomba Água Quente - Migração Corrente
 
 # IMPORTANTE: Criar via UI em Settings → Helpers → Create Helper
 # Este arquivo serve apenas como REFERÊNCIA das especificações
 
 # ========================================
-# TIMERS (4)
+# TIMERS (4) - SEM MUDANÇAS
 # ========================================
 
 # timer.pump_activation_delay
@@ -29,7 +29,7 @@
 # - Icon: mdi:timer-pause
 
 # ========================================
-# INPUT BOOLEANS (3)
+# INPUT BOOLEANS (3) - SEM MUDANÇAS
 # ========================================
 
 # input_boolean.pump_manual_override
@@ -45,7 +45,7 @@
 # - Icon: mdi:bell
 
 # ========================================
-# COUNTERS (4)
+# COUNTERS (5) - 1 NOVO
 # ========================================
 
 # counter.pump_hourly_cycles
@@ -72,8 +72,11 @@
 # - Máximo: 9999
 # - Icon: mdi:alert
 
-# counter.pump_power_alerts
-# - Nome: Pump Power Alerts
+# ❌ REMOVER: counter.pump_power_alerts (substituído por pump_current_alerts)
+
+# ✅ NOVO:
+# counter.pump_current_alerts
+# - Nome: Pump Current Alerts
 # - Inicial: 0
 # - Step: 1
 # - Mínimo: 0
@@ -81,7 +84,7 @@
 # - Icon: mdi:flash-alert
 
 # ========================================
-# INPUT DATETIME (2)
+# INPUT DATETIME (2) - SEM MUDANÇAS
 # ========================================
 
 # input_datetime.pump_last_activation
@@ -97,48 +100,60 @@
 # - Icon: mdi:clock-alert
 
 # ========================================
-# INPUT NUMBERS (9) - CONFIGURÁVEIS
+# INPUT NUMBERS (9) - 4 REMOVIDOS, 4 ADICIONADOS
 # ========================================
 
-# THRESHOLDS POTÊNCIA
+# ❌ REMOVER THRESHOLDS POTÊNCIA:
+# - input_number.pump_power_threshold_low
+# - input_number.pump_power_threshold_high
+# - input_number.pump_power_normal_min
+# - input_number.pump_power_normal_max
 
-# input_number.pump_power_threshold_low
-# - Nome: Limite Potência Baixa
-# - Mínimo: 20
-# - Máximo: 50
-# - Step: 1
-# - Valor Padrão: 40
-# - Unidade: W
+# ✅ ADICIONAR THRESHOLDS CORRENTE:
+
+# input_number.pump_current_threshold_low
+# - Nome: Limite Corrente Baixa
+# - Mínimo: 0.15
+# - Máximo: 0.30
+# - Step: 0.01
+# - Valor Padrão: 0.24
+# - Unidade: A
 # - Icon: mdi:flash-triangle
+# - Modo: Slider
 
-# input_number.pump_power_threshold_high
-# - Nome: Limite Potência Alta
-# - Mínimo: 50
-# - Máximo: 100
-# - Step: 1
-# - Valor Padrão: 60
-# - Unidade: W
+# input_number.pump_current_threshold_high
+# - Nome: Limite Corrente Alta
+# - Mínimo: 0.30
+# - Máximo: 0.50
+# - Step: 0.01
+# - Valor Padrão: 0.33
+# - Unidade: A
 # - Icon: mdi:flash-triangle
+# - Modo: Slider
 
-# input_number.pump_power_normal_min
-# - Nome: Potência Normal Mínimo
-# - Mínimo: 30
-# - Máximo: 60
-# - Step: 1
-# - Valor Padrão: 48
-# - Unidade: W
+# input_number.pump_current_normal_min
+# - Nome: Corrente Normal Mínimo
+# - Mínimo: 0.25
+# - Máximo: 0.35
+# - Step: 0.001
+# - Valor Padrão: 0.303
+# - Unidade: A
 # - Icon: mdi:flash
+# - Modo: Box
 
-# input_number.pump_power_normal_max
-# - Nome: Potência Normal Máximo
-# - Mínimo: 40
-# - Máximo: 80
-# - Step: 1
-# - Valor Padrão: 53
-# - Unidade: W
+# input_number.pump_current_normal_max
+# - Nome: Corrente Normal Máximo
+# - Mínimo: 0.25
+# - Máximo: 0.35
+# - Step: 0.001
+# - Valor Padrão: 0.323
+# - Unidade: A
 # - Icon: mdi:flash
+# - Modo: Box
 
-# LIMITES OPERACIONAIS
+# ========================================
+# LIMITES OPERACIONAIS (2) - SEM MUDANÇAS
+# ========================================
 
 # input_number.pump_max_daily_runtime
 # - Nome: Runtime Máximo Diário
@@ -158,7 +173,9 @@
 # - Unidade: ciclos
 # - Icon: mdi:counter
 
-# TEMPOS
+# ========================================
+# TEMPOS (4) - SEM MUDANÇAS
+# ========================================
 
 # input_number.pump_timeout_minutes
 # - Nome: Timeout Segurança
@@ -196,7 +213,9 @@
 # - Unidade: s
 # - Icon: mdi:timer-stop
 
-# CUSTO
+# ========================================
+# CUSTO (1) - SEM MUDANÇAS
+# ========================================
 
 # input_number.bomba_energy_tariff
 # - Nome: Tarifa Energia
@@ -208,19 +227,44 @@
 # - Icon: mdi:currency-brl
 
 # ========================================
-# INSTRUÇÕES DE CRIAÇÃO
+# RESUMO DE MUDANÇAS v2.0 → v3.0
 # ========================================
 
-# 1. Acesse: Settings → Devices & Services → Helpers
-# 2. Clique em: + CREATE HELPER
-# 3. Escolha o tipo (Timer, Toggle, Counter, Date/Time, Number)
-# 4. Preencha com as especificações acima
-# 5. Repita para todas as 22 entidades
+# TOTAL HELPERS:
+# v2.0: 22 helpers
+# v3.0: 23 helpers (+1 counter, -4 input_number potência, +4 input_number corrente)
+
+# REMOVER (4):
+# - input_number.pump_power_threshold_low
+# - input_number.pump_power_threshold_high
+# - input_number.pump_power_normal_min
+# - input_number.pump_power_normal_max
+
+# ADICIONAR (5):
+# - input_number.pump_current_threshold_low (0.24A)
+# - input_number.pump_current_threshold_high (0.33A)
+# - input_number.pump_current_normal_min (0.303A)
+# - input_number.pump_current_normal_max (0.323A)
+# - counter.pump_current_alerts
 
 # ========================================
-# VALIDAÇÃO
+# INSTRUÇÕES DE MIGRAÇÃO
 # ========================================
 
+# PASSO 1: Criar novos helpers de corrente (5)
+# - Settings → Devices & Services → Helpers → + CREATE HELPER
+# - Escolher "Number" para input_numbers
+# - Escolher "Counter" para counter
+# - Preencher com especificações acima
+
+# PASSO 2: Aguardar validação do sistema v3.0
+
+# PASSO 3: Remover helpers antigos de potência (4)
+# - Settings → Devices & Services → Helpers
+# - Buscar cada helper de potência
+# - Clicar nos 3 pontinhos → Delete
+
+# VALIDAÇÃO:
 # Após criar todos os helpers, validar via Developer Tools → Template:
 
 # {% set required_helpers = [
@@ -234,13 +278,13 @@
 #   'counter.pump_hourly_cycles',
 #   'counter.pump_daily_cycles',
 #   'counter.pump_timeout_events',
-#   'counter.pump_power_alerts',
+#   'counter.pump_current_alerts',
 #   'input_datetime.pump_last_activation',
 #   'input_datetime.pump_last_timeout',
-#   'input_number.pump_power_threshold_low',
-#   'input_number.pump_power_threshold_high',
-#   'input_number.pump_power_normal_min',
-#   'input_number.pump_power_normal_max',
+#   'input_number.pump_current_threshold_low',
+#   'input_number.pump_current_threshold_high',
+#   'input_number.pump_current_normal_min',
+#   'input_number.pump_current_normal_max',
 #   'input_number.pump_max_daily_runtime',
 #   'input_number.pump_max_hourly_cycles',
 #   'input_number.pump_timeout_minutes',
@@ -250,7 +294,7 @@
 #   'input_number.bomba_energy_tariff'
 # ] %}
 # 
-# VALIDAÇÃO HELPERS (22 entidades):
+# VALIDAÇÃO HELPERS v3.0 (23 entidades):
 # {% for helper in required_helpers %}
 # {{ loop.index }}. {{ helper }}: {% if states(helper) != 'unknown' %}✅ OK{% else %}❌ FALTANDO{% endif %}
 # {% endfor %}
