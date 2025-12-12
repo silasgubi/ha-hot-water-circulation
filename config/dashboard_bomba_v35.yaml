@@ -254,9 +254,6 @@ cards:
       - entity: timer.pump_safety_timeout
         name: Timer Timeout Seguranca
         secondary_info: last-changed
-      - entity: timer.pump_anti_cycle_cooldown
-        name: Timer Anti-Cycle Cooldown
-        secondary_info: last-changed
 
   - type: markdown
     title: DEBUG - Estado do Sistema
@@ -267,7 +264,6 @@ cards:
       {% set timer_act = states('timer.pump_activation_delay') %}
       {% set timer_deact = states('timer.pump_deactivation_delay') %}
       {% set timer_timeout = states('timer.pump_safety_timeout') %}
-      {% set timer_cooldown = states('timer.pump_anti_cycle_cooldown') %}
       {% set auto_principal = states('automation.bomba_agua_quente_controle_principal') %}
 
       ## CHECKLIST DEBUG
@@ -276,7 +272,6 @@ cards:
       |-------------|--------|-----|
       | Valvula Fluxo | {{ valve }} | {{ 'SIM' if valve == 'open' else 'NAO' }} |
       | Override DESLIGADO? | {{ override }} | {{ 'SIM' if override == 'off' else 'BLOQUEADO!' }} |
-      | Cooldown idle? | {{ timer_cooldown }} | {{ 'SIM' if timer_cooldown == 'idle' else 'AGUARDANDO!' }} |
       | Automacao ON? | {{ auto_principal }} | {{ 'SIM' if auto_principal == 'on' else 'DESLIGADA!' }} |
       | Bomba | {{ switch_state }} | - |
 
@@ -289,7 +284,6 @@ cards:
       | Activation | {{ timer_act }} | {{ state_attr('timer.pump_activation_delay', 'remaining') or 'idle' }} |
       | Deactivation | {{ timer_deact }} | {{ state_attr('timer.pump_deactivation_delay', 'remaining') or 'idle' }} |
       | Safety Timeout | {{ timer_timeout }} | {{ state_attr('timer.pump_safety_timeout', 'remaining') or 'idle' }} |
-      | Anti-Cycle | {{ timer_cooldown }} | {{ state_attr('timer.pump_anti_cycle_cooldown', 'remaining') or 'idle' }} |
 
       ---
 
@@ -311,9 +305,6 @@ cards:
       **Verificar:**
       {% if override == 'on' %}
       - Override esta LIGADO! Desative para automacao funcionar.
-      {% endif %}
-      {% if timer_cooldown != 'idle' %}
-      - Cooldown ATIVO! Aguarde {{ state_attr('timer.pump_anti_cycle_cooldown', 'remaining') }}.
       {% endif %}
       {% if timer_act == 'idle' %}
       - Timer activation NAO iniciou! Automacao pode estar desligada ou com erro.
