@@ -6,7 +6,7 @@
 Sistema Home Assistant para automação de bomba de circulação de água quente (50W/0.31A). Detecta fluxo via Sonoff Mini, aciona bomba via Tuya TS011F Zigbee. v3.5 usa derivative (dI/dt) para distinguir inrush current de problemas reais.
 
 ## Estado Atual
-**Versão**: v3.5 | **Data**: 2024-12-12 | **Status**: Pronto para Deploy
+**Versão**: v3.5 | **Data**: 2025-12-12 | **Status**: Em Produção
 
 ## Quick Reference
 
@@ -57,8 +57,9 @@ CAMADA 3 (ALERTAS COMBINADOS):
 |----------------|---------|-----------|
 | Derivative + Statistics | `config/sensors.yaml` | Sensores raw v3.5 |
 | Binary sensors + Templates | `config/template_sensors.yaml` | Detecção inteligente |
-| Automações v3.5 | `config/automations.yaml` | Controle + alertas |
-| Scripts | `config/scripts.yaml` | Teste, reset, relatório |
+| Automações v3.5 | `config/automations_bomba.yaml` | Controle + alertas |
+| Scripts | `config/scripts_bomba.yaml` | Teste, reset, relatório |
+| Dashboard | `config/dashboard_bomba_v35.yaml` | Lovelace v3.5 com debug |
 
 ### Problemas Conhecidos (Quick Fix)
 | Problema | Solução |
@@ -66,6 +67,7 @@ CAMADA 3 (ALERTAS COMBINADOS):
 | Inrush dispara alerta | v3.5 resolve: usa `estabilizada` |
 | Sonoff stuck em "open" | Filtro 3s delay em automação |
 | Derivative em A/min | CORRIGIDO v3.5: unit_time: s |
+| Cooldown timer bloqueava | CORRIGIDO: timer removido v3.0, condição removida |
 
 **Detalhes**: [docs/lessons-learned.md](docs/lessons-learned.md)
 
@@ -81,11 +83,13 @@ CAMADA 3 (ALERTAS COMBINADOS):
 - ✅ Statistics sensors (24h/7d/30d)
 - ❌ Derivative com parâmetros errados
 
-### v3.5 (Este release)
+### v3.5 (Em Produção)
 - ✅ Derivative CORRIGIDO: `unit_time: s`, `time_window: 00:00:05`
 - ✅ 3 novos binary_sensors (estabilizada, mudança_rápida, desgaste_emergente)
 - ✅ Lógica inteligente ignora inrush automaticamente
 - ✅ Mensagens com unidades corretas (A/s)
+- ✅ Dashboard Lovelace v3.5 com secao DEBUG
+- ✅ Bug cooldown timer corrigido (condicao removida)
 
 ## Funcionalidades Descartadas
 - ❌ Cycle counting: Removido v3.0 (logs do HA suficientes)
@@ -138,10 +142,10 @@ ha state get binary_sensor.bomba_desgaste_emergente
 ```
 
 ## Próximos Passos
-- [ ] Deploy v3.5 em produção
-- [ ] Validar comportamento inrush
+- [x] Deploy v3.5 em produção (2025-12-12)
+- [ ] Validar comportamento inrush (monitoramento continuo)
 - [ ] Coletar dados 7 dias para confirmar thresholds
-- [ ] Ajustar se necessário
+- [ ] Ajustar se necessario
 
 ## Links
 - **Lessons Learned**: [docs/lessons-learned.md](docs/lessons-learned.md)
