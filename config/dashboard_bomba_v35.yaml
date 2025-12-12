@@ -1,8 +1,5 @@
 type: vertical-stack
 cards:
-  # ========================================
-  # HEADER - STATUS GERAL v3.5
-  # ========================================
   - type: horizontal-stack
     cards:
       - type: entity
@@ -16,10 +13,6 @@ cards:
       - type: entity
         entity: binary_sensor.bomba_corrente_estabilizada
         name: Estabilizada
-
-  # ========================================
-  # FLUXO + CORRENTE - VISAO PRINCIPAL
-  # ========================================
   - type: horizontal-stack
     cards:
       - type: entity
@@ -38,82 +31,133 @@ cards:
           green: 0.303
           yellow: 0.323
           red: 0.388
+  - square: true
+    type: grid
+    cards:
+      - type: markdown
+        title: Diagnostico v3.5
+        content: >-
+          {% set corrente =
+          states('sensor.bomba_de_circulacao_de_agua_quente_corrente') |
+          float(0) %}
 
-  # ========================================
-  # DIAGNOSTICO v3.5
-  # ========================================
-  - type: markdown
-    title: Diagnostico v3.5
-    content: |
-      {% set corrente = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
-      {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0) %}
-      {% set switch_on = is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') %}
-      {% set valve_open = is_state('valve.hot_water', 'open') %}
-      {% set valve_state = states('valve.hot_water') %}
-      {% set estabilizada = is_state('binary_sensor.bomba_corrente_estabilizada', 'on') %}
-      {% set mudanca_rapida = is_state('binary_sensor.bomba_mudanca_rapida_corrente', 'on') %}
-      {% set anormal = is_state('binary_sensor.bomba_corrente_anormal', 'on') %}
-      {% set critica = is_state('binary_sensor.bomba_corrente_critica', 'on') %}
-      {% set min_corrente = states('input_number.pump_current_normal_min') | float(0.303) %}
-      {% set max_corrente = states('input_number.pump_current_normal_max') | float(0.323) %}
-      **STATUS ATUAL**
-      - Valvula: {{ 'ABERTA' if valve_open else 'FECHADA' }}
-      - Bomba: {{ 'LIGADA' if switch_on else 'DESLIGADA' }}
-      - Corrente: **{{ corrente }}A**
-      - Taxa (dI/dt): {{ taxa | round(4) }} A/s
-      - Estabilizada: {{ 'SIM' if estabilizada else 'NAO' }}
-      ---
-      {% if critica %}
-      **CORRENTE CRITICA!**
-      Corrente {{ corrente }}A acima do limite critico!
-      ACAO IMEDIATA: Sistema desligara automaticamente.
-      {% elif mudanca_rapida %}
-      **MUDANCA RAPIDA**
-      Taxa {{ taxa | round(4) }} A/s muito alta!
-      Possiveis causas: bloqueio rotor, travamento rolamento, obstrucao
-      {% elif switch_on and not estabilizada %}
-      **ESTABILIZANDO (INRUSH)**
-      Bomba ligando, aguardando estabilizacao (~2s)...
-      Taxa atual: {{ taxa | round(4) }} A/s
-      {% elif anormal %}
-      **CORRENTE ANORMAL**
-      Corrente {{ corrente }}A fora da faixa {{ min_corrente }}-{{ max_corrente }}A
-      {% if corrente < min_corrente %}
-      Problema: Corrente BAIXA
-      {% else %}
-      Problema: Corrente ALTA
-      {% endif %}
-      {% elif switch_on and estabilizada %}
-      **FUNCIONANDO NORMALMENTE**
-      Corrente: {{ corrente }}A (faixa: {{ min_corrente }}-{{ max_corrente }}A)
-      {% elif valve_open and not switch_on %}
-      **FLUXO DETECTADO**
-      Valvula ABERTA - Aguardando delay...
-      {% else %}
-      **STANDBY**
-      Aguardando abertura de torneira
-      {% endif %}
+          {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0)
+          %}
 
-  # ========================================
-  # ENTIDADES PRINCIPAIS
-  # ========================================
-  - type: entities
-    title: Hardware
-    entities:
-      - entity: valve.hot_water
-        name: Valvula Fluxo (Sonoff Mini)
-        secondary_info: last-changed
-      - entity: switch.bomba_de_circulacao_de_agua_quente
-        name: Bomba (Tuya TS011F)
-        secondary_info: last-changed
-      - entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
-        name: Corrente
-      - entity: sensor.bomba_de_circulacao_de_agua_quente_potencia
-        name: Potencia
+          {% set switch_on =
+          is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') %}
 
-  # ========================================
-  # SENSORES DERIVATIVE v3.5
-  # ========================================
+          {% set valve_open = is_state('valve.hot_water', 'open') %}
+
+          {% set valve_state = states('valve.hot_water') %}
+
+          {% set estabilizada =
+          is_state('binary_sensor.bomba_corrente_estabilizada', 'on') %}
+
+          {% set mudanca_rapida =
+          is_state('binary_sensor.bomba_mudanca_rapida_corrente', 'on') %}
+
+          {% set anormal = is_state('binary_sensor.bomba_corrente_anormal',
+          'on') %}
+
+          {% set critica = is_state('binary_sensor.bomba_corrente_critica',
+          'on') %}
+
+          {% set min_corrente = states('input_number.pump_current_normal_min') |
+          float(0.303) %}
+
+          {% set max_corrente = states('input_number.pump_current_normal_max') |
+          float(0.323) %}
+
+          **STATUS ATUAL**
+
+          - Valvula: {{ 'ABERTA' if valve_open else 'FECHADA' }}
+
+          - Bomba: {{ 'LIGADA' if switch_on else 'DESLIGADA' }}
+
+          - Corrente: **{{ corrente }}A**
+
+          - Taxa (dI/dt): {{ taxa | round(4) }} A/s
+
+          - Estabilizada: {{ 'SIM' if estabilizada else 'NAO' }}
+
+          ---
+
+          {% if critica %}
+
+          **CORRENTE CRITICA!**
+
+          Corrente {{ corrente }}A acima do limite critico!
+
+          ACAO IMEDIATA: Sistema desligara automaticamente.
+
+          {% elif mudanca_rapida %}
+
+          **MUDANCA RAPIDA**
+
+          Taxa {{ taxa | round(4) }} A/s muito alta!
+
+          Possiveis causas: bloqueio rotor, travamento rolamento, obstrucao
+
+          {% elif switch_on and not estabilizada %}
+
+          **ESTABILIZANDO (INRUSH)**
+
+          Bomba ligando, aguardando estabilizacao (~2s)...
+
+          Taxa atual: {{ taxa | round(4) }} A/s
+
+          {% elif anormal %}
+
+          **CORRENTE ANORMAL**
+
+          Corrente {{ corrente }}A fora da faixa {{ min_corrente }}-{{
+          max_corrente }}A
+
+          {% if corrente < min_corrente %}
+
+          Problema: Corrente BAIXA
+
+          {% else %}
+
+          Problema: Corrente ALTA
+
+          {% endif %}
+
+          {% elif switch_on and estabilizada %}
+
+          **FUNCIONANDO NORMALMENTE**
+
+          Corrente: {{ corrente }}A (faixa: {{ min_corrente }}-{{ max_corrente
+          }}A)
+
+          {% elif valve_open and not switch_on %}
+
+          **FLUXO DETECTADO**
+
+          Valvula ABERTA - Aguardando delay...
+
+          {% else %}
+
+          **STANDBY**
+
+          Aguardando abertura de torneira
+
+          {% endif %}
+      - type: entities
+        title: Hardware
+        entities:
+          - entity: valve.hot_water
+            name: Valvula Fluxo (Sonoff Mini)
+            secondary_info: last-changed
+          - entity: switch.bomba_de_circulacao_de_agua_quente
+            name: Bomba (Tuya TS011F)
+            secondary_info: last-changed
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+            name: Corrente
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_potencia
+            name: Potencia
+    columns: 2
   - type: entities
     title: Monitoramento v3.5
     entities:
@@ -134,10 +178,6 @@ cards:
         name: Corrente Anormal
       - entity: binary_sensor.bomba_corrente_critica
         name: Corrente Critica
-
-  # ========================================
-  # CONTROLES
-  # ========================================
   - type: horizontal-stack
     cards:
       - type: button
@@ -166,10 +206,6 @@ cards:
           service: script.pump_emergency_reset
           confirmation:
             text: Executar reset de emergencia?
-
-  # ========================================
-  # BOTOES EXTRAS
-  # ========================================
   - type: horizontal-stack
     cards:
       - type: button
@@ -184,10 +220,6 @@ cards:
         tap_action:
           action: more-info
           entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
-
-  # ========================================
-  # GRAFICO CORRENTE (ultimas 2h)
-  # ========================================
   - type: history-graph
     title: Historico (2h)
     hours_to_show: 2
@@ -196,10 +228,6 @@ cards:
         name: Fluxo
       - entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
         name: Corrente
-
-  # ========================================
-  # DEBUG - TIMERS E AUTOMACOES
-  # ========================================
   - type: entities
     title: DEBUG - Timers
     state_color: true
@@ -213,43 +241,79 @@ cards:
       - entity: timer.pump_safety_timeout
         name: Timer Timeout Seguranca
         secondary_info: last-changed
-
   - type: markdown
     title: DEBUG - Estado do Sistema
-    content: |
+    content: >
       {% set valve = states('valve.hot_water') %}
-      {% set switch_state = states('switch.bomba_de_circulacao_de_agua_quente') %}
+
+      {% set switch_state = states('switch.bomba_de_circulacao_de_agua_quente')
+      %}
+
       {% set override = states('input_boolean.pump_manual_override') %}
+
       {% set timer_act = states('timer.pump_activation_delay') %}
+
       {% set timer_deact = states('timer.pump_deactivation_delay') %}
+
       {% set timer_timeout = states('timer.pump_safety_timeout') %}
-      {% set auto_principal = states('automation.bomba_agua_quente_controle_principal') %}
+
+      {% set auto_principal =
+      states('automation.bomba_agua_quente_controle_principal') %}
+
       **CHECKLIST**
+
       - Valvula: {{ valve }} {{ '- OK' if valve == 'open' else '' }}
-      - Override: {{ override }} {{ '- OK' if override == 'off' else '- BLOQUEADO!' }}
-      - Automacao: {{ auto_principal }} {{ '- OK' if auto_principal == 'on' else '- DESLIGADA!' }}
+
+      - Override: {{ override }} {{ '- OK' if override == 'off' else '-
+      BLOQUEADO!' }}
+
+      - Automacao: {{ auto_principal }} {{ '- OK' if auto_principal == 'on' else
+      '- DESLIGADA!' }}
+
       - Bomba: {{ switch_state }}
+
       ---
+
       **TIMERS**
-      - Activation: {{ timer_act }} ({{ state_attr('timer.pump_activation_delay', 'remaining') or '-' }})
-      - Deactivation: {{ timer_deact }} ({{ state_attr('timer.pump_deactivation_delay', 'remaining') or '-' }})
-      - Timeout: {{ timer_timeout }} ({{ state_attr('timer.pump_safety_timeout', 'remaining') or '-' }})
+
+      - Activation: {{ timer_act }} ({{
+      state_attr('timer.pump_activation_delay', 'remaining') or '-' }})
+
+      - Deactivation: {{ timer_deact }} ({{
+      state_attr('timer.pump_deactivation_delay', 'remaining') or '-' }})
+
+      - Timeout: {{ timer_timeout }} ({{ state_attr('timer.pump_safety_timeout',
+      'remaining') or '-' }})
+
       {% if valve == 'open' and switch_state == 'off' %}
+
       ---
+
       **PROBLEMA!** Valvula ABERTA mas bomba DESLIGADA
+
       {% if override == 'on' %}
+
       - Override LIGADO! Desative.
-      {% endif %}
-      {% if timer_act == 'idle' %}
-      - Timer NAO iniciou!
-      {% elif timer_act == 'active' %}
-      - Timer RODANDO. Aguarde.
-      {% endif %}
-      {% if auto_principal != 'on' %}
-      - Automacao DESLIGADA!
-      {% endif %}
+
       {% endif %}
 
+      {% if timer_act == 'idle' %}
+
+      - Timer NAO iniciou!
+
+      {% elif timer_act == 'active' %}
+
+      - Timer RODANDO. Aguarde.
+
+      {% endif %}
+
+      {% if auto_principal != 'on' %}
+
+      - Automacao DESLIGADA!
+
+      {% endif %}
+
+      {% endif %}
   - type: entities
     title: DEBUG - Automacoes
     state_color: true
@@ -263,13 +327,26 @@ cards:
       - entity: automation.bomba_controle_manual
         name: Controle Manual
         secondary_info: last-triggered
-      - entity: automation.bomba_desligamento_seguranca_corrente
-        name: Deslig. Corrente Critica
-        secondary_info: last-triggered
-
-  # ========================================
-  # BOTOES DEBUG
-  # ========================================
+  - type: entities
+    title: Configuracoes
+    show_header_toggle: false
+    entities:
+      - entity: input_number.pump_current_normal_min
+        name: Corrente Normal Min
+      - entity: input_number.pump_current_normal_max
+        name: Corrente Normal Max
+      - entity: input_number.pump_current_critical_max
+        name: Corrente Critica
+      - type: divider
+      - entity: input_number.pump_activation_delay_seconds
+        name: Delay Ligar
+      - entity: input_number.pump_deactivation_delay_seconds
+        name: Delay Desligar
+      - entity: input_number.pump_timeout_minutes
+        name: Timeout
+      - type: divider
+      - entity: input_boolean.pump_alerts_enabled
+        name: Alertas TTS
   - type: horizontal-stack
     cards:
       - type: button
@@ -300,27 +377,3 @@ cards:
             entity_id: switch.bomba_de_circulacao_de_agua_quente
           confirmation:
             text: Ligar bomba manualmente?
-
-  # ========================================
-  # CONFIGURACOES
-  # ========================================
-  - type: entities
-    title: Configuracoes
-    show_header_toggle: false
-    entities:
-      - entity: input_number.pump_current_normal_min
-        name: Corrente Normal Min
-      - entity: input_number.pump_current_normal_max
-        name: Corrente Normal Max
-      - entity: input_number.pump_current_critical_max
-        name: Corrente Critica
-      - type: divider
-      - entity: input_number.pump_activation_delay_seconds
-        name: Delay Ligar
-      - entity: input_number.pump_deactivation_delay_seconds
-        name: Delay Desligar
-      - entity: input_number.pump_timeout_minutes
-        name: Timeout
-      - type: divider
-      - entity: input_boolean.pump_alerts_enabled
-        name: Alertas TTS
