@@ -1,0 +1,523 @@
+- id: bomba_agua_quente_controle_principal
+  alias: "Bomba Ãgua Quente - Controle Principal"
+  description: "Controla acionamento automÃ¡tico da bomba baseado em detecÃ§Ã£o de fluxo"
+  mode: restart
+  
+  trigger:
+    - platform: state
+      entity_id: valve.hot_water
+      to: "open"
+      id: fluxo_aberto
+    
+    - platform: state
+      entity_id: valve.hot_water
+      to: "closed"
+      id: fluxo_fechado
+    
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_activation_delay
+      id: timer_ligar_terminou
+    
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_deactivation_delay
+      id: timer_desligar_terminou
+  
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_manual_override
+      state: "off"
+  
+  action:
+    - choose:
+        # FLUXO ABERTO
+        - conditions:
+            - condition: trigger
+              id: fluxo_aberto
+            - condition: state
+              entity_id: timer.pump_anti_cycle_cooldown
+              state: "idle"
+          sequence:
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_deactivation_delay
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_activation_delay
+              data:
+                duration: "{{ states('input_number.pump_activation_delay_seconds') | int }}"
+            
+            - service: logbook.log
+              data:
+                name: "ðŸ’§ Fluxo Detectado"
+                message: "Aguardando {{ states('input_number.pump_activation_delay_seconds') }}s para confirmar"
+        
+        # TIMER LIGAR TERMINOU
+        - conditions:
+            - condition: trigger
+              id: timer_ligar_terminou
+            - condition: state
+              entity_id: valve.hot_water
+              state: "open"
+            - condition: state
+              entity_id: switch.bomba_de_circulacao_de_agua_quente
+              state: "off"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_safety_timeout
+              data:
+                duration: "{{ (states('input_number.pump_timeout_minutes') | int * 60) }}"
+            
+            - service: logbook.log
+              data:
+                name: "âœ… Bomba Ativada"
+                message: "Timeout: {{ states('input_number.pump_timeout_minutes') }}min"
+        
+        # FLUXO FECHADO
+        - conditions:
+            - condition: trigger
+              id: fluxo_fechado
+            - condition: state
+              entity_id: switch.bomba_de_circulacao_de_agua_quente
+              state: "on"
+          sequence:
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_activation_delay
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_deactivation_delay
+              data:
+                duration: "{{ states('input_number.pump_deactivation_delay_seconds') | int }}"
+            
+            - service: logbook.log
+              data:
+                name: "ðŸš° Fluxo Fechado"
+                message: "Aguardando {{ states('input_number.pump_deactivation_delay_seconds') }}s para desligar"
+        
+        # TIMER DESLIGAR TERMINOU
+        - conditions:
+            - condition: trigger
+              id: timer_desligar_terminou
+            - condition: state
+              entity_id: valve.hot_water
+              state: "closed"
+            - condition: state
+              entity_id: switch.bomba_de_circulacao_de_agua_quente
+              state: "on"
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_safety_timeout
+            
+            - service: logbook.log
+              data:
+                name: "â„¹ï¸ Bomba Desativada"
+                message: "Ciclo completo"
+
+# ================================================
+# 2. TIMEOUT SEGURANÃ‡A (v3.0 com TTS)
+# ================================================
+- id: bomba_timeout_seguranca
+  alias: "Bomba - Timeout SeguranÃ§a"
+  description: "Desliga bomba automaticamente apÃ³s timeout com alerta TTS"
+  mode: single
+  
+  trigger:
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_safety_timeout
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bomba_de_circulacao_de_agua_quente
+    
+    - service: counter.increment
+      target:
+        entity_id: counter.pump_timeout_events
+    
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.pump_last_timeout
+      data:
+        datetime: "{{ now().isoformat() }}"
+    
+    - service: system_log.write
+      data:
+        message: >
+          âš ï¸ TIMEOUT SEGURANÃ‡A - Bomba Ãgua Quente |
+          Desligada apÃ³s {{ states('input_number.pump_timeout_minutes') }}min |
+          Total timeouts: {{ states('counter.pump_timeout_events') }}
+        level: warning
+    
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+    
+    - data:
+        message: >
+          AtenÃ§Ã£o! Bomba desligada por seguranÃ§a apÃ³s {{ states('input_number.pump_timeout_minutes') }} minutos.
+          Verifique se hÃ¡ vazamento ou torneira aberta.
+        volume_type: default
+      action: script.nabu_speak
+    
+    - service: persistent_notification.create
+      data:
+        title: "âš ï¸ Timeout SeguranÃ§a"
+        message: >
+          Bomba desligada automaticamente apÃ³s {{ states('input_number.pump_timeout_minutes') }}min.
+          
+          Verifique:
+          â€¢ Vazamento
+          â€¢ Torneira aberta
+          â€¢ Sistema
+          
+          HorÃ¡rio: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_timeout
+
+# ================================================
+# 3. CONTROLE MANUAL (v3.0)
+# ================================================
+- id: bomba_controle_manual
+  alias: "Bomba - Controle Manual"
+  description: "Override manual do sistema automÃ¡tico"
+  mode: restart
+  
+  trigger:
+    - platform: state
+      entity_id: input_boolean.pump_manual_control
+      to: "on"
+      id: manual_on
+    
+    - platform: state
+      entity_id: input_boolean.pump_manual_control
+      to: "off"
+      id: manual_off
+  
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_manual_override
+      state: "on"
+  
+  action:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: manual_on
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.start
+              target:
+                entity_id: timer.pump_safety_timeout
+              data:
+                duration: "{{ (states('input_number.pump_timeout_minutes') | int * 60) }}"
+            
+            - service: logbook.log
+              data:
+                name: "ðŸ”§ Controle Manual ON"
+                message: "Bomba ligada manualmente"
+        
+        - conditions:
+            - condition: trigger
+              id: manual_off
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: switch.bomba_de_circulacao_de_agua_quente
+            
+            - service: timer.cancel
+              target:
+                entity_id: timer.pump_safety_timeout
+            
+            - service: logbook.log
+              data:
+                name: "ðŸ”§ Controle Manual OFF"
+                message: "Bomba desligada manualmente"
+
+# ================================================
+# 4. DESLIGAMENTO SEGURANÃ‡A CORRENTE CRÃTICA (v3.0)
+# ================================================
+- id: bomba_desligamento_seguranca_corrente
+  alias: "Bomba - Desligamento SeguranÃ§a Corrente CrÃ­tica"
+  description: "Desliga bomba imediatamente se corrente crÃ­tica (sem delay)"
+  mode: single
+  
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bomba_corrente_critica
+      to: "on"
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bomba_de_circulacao_de_agua_quente
+    
+    - service: timer.cancel
+      target:
+        entity_id:
+          - timer.pump_activation_delay
+          - timer.pump_deactivation_delay
+          - timer.pump_safety_timeout
+    
+    - service: system_log.write
+      data:
+        message: >
+          ðŸ”´ CORRENTE CRÃTICA - DESLIGAMENTO EMERGÃŠNCIA |
+          Corrente: {{ state_attr('binary_sensor.bomba_corrente_critica', 'corrente_atual') }}A |
+          CrÃ­tico: {{ state_attr('binary_sensor.bomba_corrente_critica', 'limite_critico') }}A |
+          BOMBA DESLIGADA AUTOMATICAMENTE
+        level: error
+    
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+    
+    - data:
+        message: >
+          EMERGÃŠNCIA! Bomba desligada automaticamente.
+          Corrente crÃ­tica detectada: {{ state_attr('binary_sensor.bomba_corrente_critica', 'corrente_atual') }} amperes.
+          NÃƒO religue antes de inspeÃ§Ã£o completa.
+        volume_type: default
+      action: script.nabu_speak
+    
+    - service: persistent_notification.create
+      data:
+        title: "ðŸ”´ CORRENTE CRÃTICA - EMERGÃŠNCIA"
+        message: >
+          **BOMBA DESLIGADA AUTOMATICAMENTE**
+          
+          â€¢ Corrente: {{ state_attr('binary_sensor.bomba_corrente_critica', 'corrente_atual') }}A
+          â€¢ Limite crÃ­tico: {{ state_attr('binary_sensor.bomba_corrente_critica', 'limite_critico') }}A
+          
+          **NÃƒO RELIGAR ANTES DE:**
+          1. InspeÃ§Ã£o completa do motor
+          2. Verificar tubulaÃ§Ã£o
+          3. Testar sem carga
+          
+          HorÃ¡rio: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_critical_shutdown
+
+# ================================================
+# 5. DETECÃ‡ÃƒO DESGASTE PROGRESSIVO (v3.0)
+# ================================================
+- id: bomba_deteccao_desgaste_progressivo
+  alias: "Bomba - DetecÃ§Ã£o Desgaste Progressivo"
+  description: "Analisa tendÃªncias de 7d vs 30d para manutenÃ§Ã£o preditiva"
+  mode: single
+  
+  trigger:
+    - platform: time
+      at: "22:00:00"
+  
+  condition:
+    - condition: template
+      value_template: >
+        {{ states('sensor.bomba_corrente_media_7d') not in ['unknown', 'unavailable'] and
+           states('sensor.bomba_corrente_media_30d') not in ['unknown', 'unavailable'] }}
+  
+  action:
+    - variables:
+        corrente_7d: "{{ states('sensor.bomba_corrente_media_7d') | float(0) }}"
+        corrente_30d: "{{ states('sensor.bomba_corrente_media_30d') | float(0) }}"
+        crescimento_pct: "{{ ((corrente_7d - corrente_30d) / corrente_30d * 100) | round(1) if corrente_30d > 0 else 0 }}"
+        normal_max: "{{ states('input_number.pump_current_normal_max') | float(0.323) }}"
+        margem_pct: "{{ ((normal_max - corrente_7d) / normal_max * 100) | round(1) if normal_max > 0 else 0 }}"
+    
+    - choose:
+        # CRÃTICO: Crescimento >3%
+        - conditions:
+            - condition: template
+              value_template: "{{ crescimento_pct > 3 }}"
+          sequence:
+            - service: system_log.write
+              data:
+                message: >
+                  ðŸš¨ DESGASTE PROGRESSIVO CRÃTICO - Bomba Ãgua Quente |
+                  Crescimento: +{{ crescimento_pct }}% (7d vs 30d) |
+                  7d: {{ corrente_7d }}A | 30d: {{ corrente_30d }}A |
+                  MANUTENÃ‡ÃƒO URGENTE RECOMENDADA
+                level: warning
+            
+            - condition: state
+              entity_id: input_boolean.pump_alerts_enabled
+              state: "on"
+            
+            - data:
+                message: >
+                  AtenÃ§Ã£o! Desgaste progressivo crÃ­tico detectado na bomba.
+                  Crescimento de {{ crescimento_pct }} por cento na Ãºltima semana.
+                  Agende manutenÃ§Ã£o preventiva nos prÃ³ximos 7 dias.
+                volume_type: default
+              action: script.nabu_speak
+            
+            - service: persistent_notification.create
+              data:
+                title: "ðŸš¨ Desgaste Progressivo CRÃTICO"
+                message: >
+                  **CRESCIMENTO ANORMAL DETECTADO**
+                  
+                  â€¢ Crescimento: +{{ crescimento_pct }}%
+                  â€¢ MÃ©dia 7d: {{ corrente_7d }}A
+                  â€¢ Baseline 30d: {{ corrente_30d }}A
+                  
+                  **AÃ‡ÃƒO:** ManutenÃ§Ã£o preventiva em 7 dias
+                notification_id: pump_progressive_wear_critical
+        
+        # PREVENTIVO: Margem <10%
+        - conditions:
+            - condition: template
+              value_template: "{{ margem_pct < 10 }}"
+          sequence:
+            - service: system_log.write
+              data:
+                message: >
+                  âš ï¸ DESGASTE PROGRESSIVO PREVENTIVO - Bomba Ãgua Quente |
+                  Margem crÃ­tico: {{ margem_pct }}% |
+                  Corrente 7d: {{ corrente_7d }}A | Normal max: {{ normal_max }}A |
+                  PLANEJAR MANUTENÃ‡ÃƒO
+                level: warning
+            
+            - condition: state
+              entity_id: input_boolean.pump_alerts_enabled
+              state: "on"
+            
+            - service: persistent_notification.create
+              data:
+                title: "âš ï¸ Desgaste Progressivo - Preventivo"
+                message: >
+                  **MARGEM DE SEGURANÃ‡A REDUZIDA**
+                  
+                  â€¢ Corrente 7d: {{ corrente_7d }}A
+                  â€¢ Normal max: {{ normal_max }}A
+                  â€¢ Margem: {{ margem_pct }}%
+                  
+                  **AÃ‡ÃƒO:** Planejar manutenÃ§Ã£o nos prÃ³ximos 30 dias
+                notification_id: pump_progressive_wear_preventive
+
+# ================================================
+# 6. NOVO - ALERTA MUDANÃ‡A RÃPIDA (Derivative)
+# ================================================
+# ================================================
+# 6. ALERTA MUDANÇA RÁPIDA (Derivative) - v3.5 CORRIGIDO
+# ================================================
+# CORREÇÕES: A/min → A/s (derivative usa segundos)
+- id: bomba_alerta_mudanca_rapida
+  alias: "Bomba - Alerta Mudança Rápida"
+  description: "Corrente subindo muito rápido - problema agudo (Derivative v3.5)"
+  mode: single
+  
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bomba_mudanca_rapida_corrente
+      to: "on"
+  
+  action:
+    - service: system_log.write
+      data:
+        message: >
+          🚨 MUDANÇA RÁPIDA - Bomba Água Quente |
+          Taxa: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }}A/s |
+          Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A |
+          PROBLEMA AGUDO DETECTADO
+        level: warning
+    
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+    
+    - data:
+        message: >
+          Atenção! Corrente da bomba subindo rapidamente.
+          Taxa de mudança: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }} amperes por segundo.
+          Possível bloqueio ou travamento do motor.
+        volume_type: default
+      action: script.nabu_speak
+    
+    - service: persistent_notification.create
+      data:
+        title: "🚨 Mudança Rápida - Problema Agudo"
+        message: >
+          **CORRENTE SUBINDO RAPIDAMENTE**
+          
+          • Taxa: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }}A/s
+          • Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
+          • Limite: >0.010A/s
+          
+          **Possíveis causas:**
+          • Bloqueio súbito do rotor
+          • Travamento de rolamento
+          • Obstrução na tubulação
+          
+          **AÇÃO:** Desligar e inspecionar AGORA
+          
+          Horário: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_rapid_change
+
+# ================================================
+# 7. ALERTA DESGASTE EMERGENTE (Statistics) - v3.5 CORRIGIDO
+# ================================================
+# CORREÇÕES: Não é baseado em tempo (30min), é comparação estatística 7d vs 30d
+- id: bomba_alerta_desgaste_emergente
+  alias: "Bomba - Alerta Desgaste Emergente"
+  description: "Tendência de crescimento detectada via comparação 7d vs 30d (Statistics v3.5)"
+  mode: single
+  
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bomba_desgaste_emergente
+      to: "on"
+  
+  action:
+    - service: system_log.write
+      data:
+        message: >
+          ⚠️ DESGASTE EMERGENTE - Bomba Água Quente |
+          Tendência crescente detectada (7d vs 30d baseline) |
+          Média 7d: {{ states('sensor.bomba_corrente_media_7d') }}A |
+          Baseline 30d: {{ states('sensor.bomba_corrente_media_30d') }}A |
+          Normal max: {{ states('input_number.pump_current_normal_max') }}A
+        level: warning
+    
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+    
+    - service: persistent_notification.create
+      data:
+        title: "⚠️ Desgaste Emergente"
+        message: >
+          **TENDÊNCIA DE CRESCIMENTO DETECTADA**
+          
+          Comparação estatística 7d vs 30d indica desgaste emergente.
+          
+          • Média 7d: {{ states('sensor.bomba_corrente_media_7d') }}A
+          • Baseline 30d: {{ states('sensor.bomba_corrente_media_30d') }}A
+          • Crescimento: {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'crescimento_pct') }}
+          • Margem crítico: {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'margem_critico_pct') }}
+          • Normal máx: {{ states('input_number.pump_current_normal_max') }}A
+          
+          **Causa provável:** Desgaste progressivo começando
+          
+          **AÇÃO:** Agendar inspeção preventiva nos próximos 7 dias
+          
+          Horário: {{ now().strftime('%H:%M:%S') }}
+        notification_id: pump_emerging_wear

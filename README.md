@@ -1,0 +1,82 @@
+# Sistema Automação Bomba Água Quente v3.5
+
+Sistema inteligente para Home Assistant que aciona automaticamente bomba de circulação ao detectar fluxo de água quente, com detecção inteligente de inrush current via derivative.
+
+## 🎯 O Que Faz
+
+- **Detecta** abertura de torneira água quente (Sonoff Mini)
+- **Aciona** bomba automaticamente após 3s de confirmação
+- **Monitora** corrente em tempo real (0.303-0.323A normal)
+- **Ignora** pico de partida (inrush) automaticamente
+- **Alerta** mudanças rápidas e desgaste emergente
+- **Protege** com desligamento crítico (>0.388A)
+
+## 🆕 Novidades v3.5
+
+- **Derivative corrigido**: `unit_time: s` (era min), `time_window: 5s` (era 5min)
+- **3 novos sensores**: Estabilização, Mudança Rápida, Desgaste Emergente
+- **Inrush ignorado**: Lógica `estabilizada AND fora_faixa` evita falsos positivos
+- **Mensagens corretas**: A/s em vez de A/min
+
+## 🛠️ Hardware
+
+| Item | Modelo | Função |
+|------|--------|--------|
+| Sensor Fluxo | Sonoff Mini | Detectar fluxo água |
+| Relé | Tuya TS011F | Controlar bomba (Zigbee) |
+| Bomba | Circulação 50W | Circular água quente |
+
+## 📊 Thresholds Calibrados
+
+Baseado em **1826 amostras** (dezembro 2024):
+
+| Parâmetro | Valor | Significado |
+|-----------|-------|-------------|
+| Normal | 0.303-0.323A | Operação saudável |
+| Atenção | 0.323-0.388A | Monitorar |
+| Crítico | >0.388A | Desliga imediato |
+
+## 🚀 Instalação
+
+1. **Backup** dos arquivos atuais
+2. **Copiar** arquivos de `config/` para `/config/`
+3. **Criar** input_numbers e timers (ver CLAUDE.md)
+4. **Reiniciar** Home Assistant
+
+## 📁 Estrutura
+
+```
+├── CLAUDE.md              # Contexto para IA (Claude Code)
+├── README.md              # Este arquivo
+├── CHANGELOG.md           # Histórico de versões
+├── config/
+│   ├── sensors.yaml       # Derivative + Statistics
+│   ├── template_sensors.yaml # Binary sensors v3.5
+│   ├── automations.yaml   # Automações completas
+│   └── scripts.yaml       # Teste, reset, relatório
+└── docs/
+    ├── decisions/         # ADRs
+    └── lessons-learned.md # Lições aprendidas
+```
+
+## 📚 Documentação
+
+- **[CLAUDE.md](CLAUDE.md)** - Contexto técnico completo
+- **[CHANGELOG.md](CHANGELOG.md)** - Histórico de versões
+- **[docs/lessons-learned.md](docs/lessons-learned.md)** - Lições aprendidas
+
+## ⚠️ Avisos
+
+- **NUNCA** use dados placeholder - sempre valores reais
+- **SEMPRE** faça backup antes de atualizar
+- **TESTE** em ambiente seguro primeiro
+
+## 📝 Licença
+
+MIT - Livre para uso e modificação
+
+---
+
+**Versão**: 3.5  
+**Última Atualização**: Dezembro 2024  
+**Status**: Pronto para Deploy ✅

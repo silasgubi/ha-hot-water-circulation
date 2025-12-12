@@ -1,0 +1,127 @@
+# ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ SENSORS.YAML - HOME ASSISTANT                                                                                                    ║
+# ║ Arquivo para inclusão via !include - Sensores REST e outros                                                                     ║
+# ║ v3.5 - Derivative corrigido para detectar inrush (~2s)                                                                          ║
+# ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# REST SENSORS - DADOS EXTERNOS
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# BANDEIRA TARIFÁRIA ANEEL
+# ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# Consulta API ANEEL para obter bandeira tarifária atual
+# Atualiza a cada 6 horas (21600s)
+# Valores possíveis: VERDE, AMARELA, VERMELHA P1, VERMELHA P2
+
+- platform: rest
+  name: "Bandeira ANEEL"
+  unique_id: bandeira_aneel
+  resource: "https://dadosabertos.aneel.gov.br/api/3/action/datastore_search?resource_id=0591b8f6-fe54-437b-b72b-1aa2efd46e42&sort=DatCompetencia%20desc&limit=1"
+  timeout: 15
+  scan_interval: 21600
+  value_template: >
+    {% if value_json.result and value_json.result.records %}
+      {{ value_json.result.records[0].NomBandeiraAcionada }}
+    {% else %}
+      Indisponível
+    {% endif %}
+  icon: mdi:flash
+  json_attributes_path: "$.result.records[0]"
+  json_attributes:
+    - DatCompetencia
+    - NomBandeiraAcionada
+    - NomRegiao
+
+# ================================================
+# HISTORY STATS - Runtime Hoje
+# ================================================
+
+- platform: history_stats
+  name: "Bomba Runtime Hoje"
+  unique_id: bomba_runtime_hoje
+  entity_id: switch.bomba_de_circulacao_de_agua_quente
+  state: "on"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0, microsecond=0) }}"
+  end: "{{ now() }}"
+
+# ================================================
+# DERIVATIVE - Taxa de Mudança (A/s) - v3.5
+# ================================================
+# CRÍTICO: Inrush current dura ~2 segundos (0.35A→0.31A)
+# Janela de 5 SEGUNDOS captura transientes rápidos
+# unit_time: s = Amperes por SEGUNDO (não minutos!)
+
+- platform: derivative
+  source: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  name: "Bomba Taxa Mudança Corrente"
+  unique_id: bomba_taxa_mudanca_corrente
+  unit_time: s                # v3.5: Amperes por SEGUNDO
+  time_window: "00:00:05"     # v3.5: Janela de 5 SEGUNDOS
+  round: 4
+
+# ================================================
+# STATISTICS SENSORS - Análise Longo Prazo
+# ================================================
+
+# Média 24h - Detecta problemas agudos
+- platform: statistics
+  name: "Bomba Corrente Média 24h"
+  unique_id: bomba_corrente_media_24h
+  entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  state_characteristic: mean
+  sampling_size: 1000
+  max_age:
+    hours: 24
+  precision: 3
+
+# Máxima 24h - Detecta picos recentes
+- platform: statistics
+  name: "Bomba Corrente Máxima 24h"
+  unique_id: bomba_corrente_maxima_24h
+  entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  state_characteristic: value_max
+  sampling_size: 1000
+  max_age:
+    hours: 24
+  precision: 3
+
+# Média 7d - Detecta tendências emergentes
+- platform: statistics
+  name: "Bomba Corrente Média 7d"
+  unique_id: bomba_corrente_media_7d
+  entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  state_characteristic: mean
+  sampling_size: 5000
+  max_age:
+    days: 7
+  precision: 3
+
+# Média 30d - Baseline de normalidade
+- platform: statistics
+  name: "Bomba Corrente Média 30d"
+  unique_id: bomba_corrente_media_30d
+  entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  state_characteristic: mean
+  sampling_size: 10000
+  max_age:
+    days: 30
+  precision: 3
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# OUTROS SENSORES REST (adicione aqui conforme necessário)
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# Exemplo de estrutura para adicionar novos sensores REST:
+# 
+# - platform: rest
+#   name: "Nome do Sensor"
+#   unique_id: id_unico_sensor
+#   resource: "https://api.exemplo.com/endpoint"
+#   timeout: 10
+#   scan_interval: 3600
+#   value_template: "{{ value_json.campo }}"
+#   icon: mdi:icone-apropriado
