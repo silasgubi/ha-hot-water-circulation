@@ -44,7 +44,7 @@ cards:
   # ========================================
   - type: markdown
     title: Diagnostico v3.5
-    content: >
+    content: |
       {% set corrente = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
       {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0) %}
       {% set switch_on = is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') %}
@@ -56,84 +56,43 @@ cards:
       {% set critica = is_state('binary_sensor.bomba_corrente_critica', 'on') %}
       {% set min_corrente = states('input_number.pump_current_normal_min') | float(0.303) %}
       {% set max_corrente = states('input_number.pump_current_normal_max') | float(0.323) %}
-
-      ## STATUS ATUAL
-
-      | Item | Valor |
-      |------|-------|
-      | **Valvula Fluxo** | {{ 'ABERTA' if valve_open else 'FECHADA' }} ({{ valve_state }}) |
-      | **Bomba** | {{ 'LIGADA' if switch_on else 'DESLIGADA' }} |
-      | **Corrente** | **{{ corrente }}A** |
-      | **Taxa (dI/dt)** | {{ taxa | round(4) }} A/s |
-      | **Estabilizada** | {{ 'SIM' if estabilizada else 'NAO' }} |
-
+      **STATUS ATUAL**
+      - Valvula: {{ 'ABERTA' if valve_open else 'FECHADA' }}
+      - Bomba: {{ 'LIGADA' if switch_on else 'DESLIGADA' }}
+      - Corrente: **{{ corrente }}A**
+      - Taxa (dI/dt): {{ taxa | round(4) }} A/s
+      - Estabilizada: {{ 'SIM' if estabilizada else 'NAO' }}
       ---
-
-      ## DIAGNOSTICO
-
       {% if critica %}
-      ### CORRENTE CRITICA!
-      Corrente **{{ corrente }}A** acima do limite critico!
-
-      **ACAO IMEDIATA:** Sistema desligara automaticamente.
-
+      **CORRENTE CRITICA!**
+      Corrente {{ corrente }}A acima do limite critico!
+      ACAO IMEDIATA: Sistema desligara automaticamente.
       {% elif mudanca_rapida %}
-      ### MUDANCA RAPIDA
-      Taxa de variacao **{{ taxa | round(4) }} A/s** muito alta!
-
-      **Possiveis causas:**
-      - Bloqueio subito do rotor
-      - Travamento de rolamento
-      - Obstrucao na tubulacao
-
+      **MUDANCA RAPIDA**
+      Taxa {{ taxa | round(4) }} A/s muito alta!
+      Possiveis causas: bloqueio rotor, travamento rolamento, obstrucao
       {% elif switch_on and not estabilizada %}
-      ### ESTABILIZANDO (INRUSH)
+      **ESTABILIZANDO (INRUSH)**
       Bomba ligando, aguardando estabilizacao (~2s)...
-
-      **Taxa atual:** {{ taxa | round(4) }} A/s
-      **Threshold:** < 0.005 A/s por 2s
-
+      Taxa atual: {{ taxa | round(4) }} A/s
       {% elif anormal %}
-      ### CORRENTE ANORMAL
-      Corrente **{{ corrente }}A** fora da faixa normal.
-
-      **Faixa esperada:** {{ min_corrente }}-{{ max_corrente }}A
+      **CORRENTE ANORMAL**
+      Corrente {{ corrente }}A fora da faixa {{ min_corrente }}-{{ max_corrente }}A
       {% if corrente < min_corrente %}
-      **Problema:** Corrente BAIXA (possivel ar, entupimento)
+      Problema: Corrente BAIXA
       {% else %}
-      **Problema:** Corrente ALTA (possivel desgaste, sobrecarga)
+      Problema: Corrente ALTA
       {% endif %}
-
       {% elif switch_on and estabilizada %}
-      ### FUNCIONANDO NORMALMENTE
-      Bomba ligada e corrente estavel.
-
-      **Corrente:** {{ corrente }}A (normal: {{ min_corrente }}-{{ max_corrente }}A)
-      **Fluxo:** {{ 'Detectado' if valve_open else 'Nao detectado' }}
-
+      **FUNCIONANDO NORMALMENTE**
+      Corrente: {{ corrente }}A (faixa: {{ min_corrente }}-{{ max_corrente }}A)
       {% elif valve_open and not switch_on %}
-      ### FLUXO DETECTADO
-      Valvula **ABERTA** - Aguardando delay para ligar bomba...
-
+      **FLUXO DETECTADO**
+      Valvula ABERTA - Aguardando delay...
       {% else %}
-      ### STANDBY
-      Sistema em espera. Valvula fechada.
-
-      **Aguardando:** Abertura de torneira (valvula = open)
-
+      **STANDBY**
+      Aguardando abertura de torneira
       {% endif %}
-
-      ---
-
-      ## ESTATISTICAS
-
-      | Metrica | Valor |
-      |---------|-------|
-      | Media 24h | {{ states('sensor.bomba_corrente_media_24h') }}A |
-      | Media 7d | {{ states('sensor.bomba_corrente_media_7d') }}A |
-      | Media 30d | {{ states('sensor.bomba_corrente_media_30d') }}A |
-      | Maxima 24h | {{ states('sensor.bomba_corrente_maxima_24h') }}A |
-      | Runtime Hoje | {{ states('sensor.bomba_runtime_hoje') }}h |
 
   # ========================================
   # ENTIDADES PRINCIPAIS
@@ -257,7 +216,7 @@ cards:
 
   - type: markdown
     title: DEBUG - Estado do Sistema
-    content: >
+    content: |
       {% set valve = states('valve.hot_water') %}
       {% set switch_state = states('switch.bomba_de_circulacao_de_agua_quente') %}
       {% set override = states('input_boolean.pump_manual_override') %}
@@ -265,54 +224,29 @@ cards:
       {% set timer_deact = states('timer.pump_deactivation_delay') %}
       {% set timer_timeout = states('timer.pump_safety_timeout') %}
       {% set auto_principal = states('automation.bomba_agua_quente_controle_principal') %}
-
-      ## CHECKLIST DEBUG
-
-      | Verificacao | Estado | OK? |
-      |-------------|--------|-----|
-      | Valvula Fluxo | {{ valve }} | {{ 'SIM' if valve == 'open' else 'NAO' }} |
-      | Override DESLIGADO? | {{ override }} | {{ 'SIM' if override == 'off' else 'BLOQUEADO!' }} |
-      | Automacao ON? | {{ auto_principal }} | {{ 'SIM' if auto_principal == 'on' else 'DESLIGADA!' }} |
-      | Bomba | {{ switch_state }} | - |
-
+      **CHECKLIST**
+      - Valvula: {{ valve }} {{ '- OK' if valve == 'open' else '' }}
+      - Override: {{ override }} {{ '- OK' if override == 'off' else '- BLOQUEADO!' }}
+      - Automacao: {{ auto_principal }} {{ '- OK' if auto_principal == 'on' else '- DESLIGADA!' }}
+      - Bomba: {{ switch_state }}
       ---
-
-      ## TIMERS (tempo restante)
-
-      | Timer | Estado | Restante |
-      |-------|--------|----------|
-      | Activation | {{ timer_act }} | {{ state_attr('timer.pump_activation_delay', 'remaining') or 'idle' }} |
-      | Deactivation | {{ timer_deact }} | {{ state_attr('timer.pump_deactivation_delay', 'remaining') or 'idle' }} |
-      | Safety Timeout | {{ timer_timeout }} | {{ state_attr('timer.pump_safety_timeout', 'remaining') or 'idle' }} |
-
-      ---
-
-      ## FLUXO ESPERADO
-
-      1. Valvula abre ({{ valve }})
-      2. Timer activation inicia ({{ timer_act }})
-      3. Timer termina -> Bomba liga
-      4. Valvula fecha -> Timer deactivation inicia
-      5. Timer termina -> Bomba desliga
-
+      **TIMERS**
+      - Activation: {{ timer_act }} ({{ state_attr('timer.pump_activation_delay', 'remaining') or '-' }})
+      - Deactivation: {{ timer_deact }} ({{ state_attr('timer.pump_deactivation_delay', 'remaining') or '-' }})
+      - Timeout: {{ timer_timeout }} ({{ state_attr('timer.pump_safety_timeout', 'remaining') or '-' }})
       {% if valve == 'open' and switch_state == 'off' %}
       ---
-
-      ## PROBLEMA DETECTADO!
-
-      Valvula ABERTA mas bomba DESLIGADA.
-
-      **Verificar:**
+      **PROBLEMA!** Valvula ABERTA mas bomba DESLIGADA
       {% if override == 'on' %}
-      - Override esta LIGADO! Desative para automacao funcionar.
+      - Override LIGADO! Desative.
       {% endif %}
       {% if timer_act == 'idle' %}
-      - Timer activation NAO iniciou! Automacao pode estar desligada ou com erro.
+      - Timer NAO iniciou!
       {% elif timer_act == 'active' %}
-      - Timer activation RODANDO. Aguarde {{ state_attr('timer.pump_activation_delay', 'remaining') }}.
+      - Timer RODANDO. Aguarde.
       {% endif %}
       {% if auto_principal != 'on' %}
-      - Automacao principal DESLIGADA!
+      - Automacao DESLIGADA!
       {% endif %}
       {% endif %}
 
