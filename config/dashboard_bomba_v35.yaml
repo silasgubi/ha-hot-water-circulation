@@ -239,6 +239,144 @@ cards:
         name: Corrente
 
   # ========================================
+  # DEBUG - TIMERS E AUTOMACOES
+  # ========================================
+  - type: entities
+    title: DEBUG - Timers
+    state_color: true
+    entities:
+      - entity: timer.pump_activation_delay
+        name: Timer Ligar
+        secondary_info: last-changed
+      - entity: timer.pump_deactivation_delay
+        name: Timer Desligar
+        secondary_info: last-changed
+      - entity: timer.pump_safety_timeout
+        name: Timer Timeout Seguranca
+        secondary_info: last-changed
+      - entity: timer.pump_anti_cycle_cooldown
+        name: Timer Anti-Cycle Cooldown
+        secondary_info: last-changed
+
+  - type: markdown
+    title: DEBUG - Estado do Sistema
+    content: >
+      {% set valve = states('valve.hot_water') %}
+      {% set switch_state = states('switch.bomba_de_circulacao_de_agua_quente') %}
+      {% set override = states('input_boolean.pump_manual_override') %}
+      {% set timer_act = states('timer.pump_activation_delay') %}
+      {% set timer_deact = states('timer.pump_deactivation_delay') %}
+      {% set timer_timeout = states('timer.pump_safety_timeout') %}
+      {% set timer_cooldown = states('timer.pump_anti_cycle_cooldown') %}
+      {% set auto_principal = states('automation.bomba_agua_quente_controle_principal') %}
+
+      ## CHECKLIST DEBUG
+
+      | Verificacao | Estado | OK? |
+      |-------------|--------|-----|
+      | Valvula Fluxo | {{ valve }} | {{ 'SIM' if valve == 'open' else 'NAO' }} |
+      | Override DESLIGADO? | {{ override }} | {{ 'SIM' if override == 'off' else 'BLOQUEADO!' }} |
+      | Cooldown idle? | {{ timer_cooldown }} | {{ 'SIM' if timer_cooldown == 'idle' else 'AGUARDANDO!' }} |
+      | Automacao ON? | {{ auto_principal }} | {{ 'SIM' if auto_principal == 'on' else 'DESLIGADA!' }} |
+      | Bomba | {{ switch_state }} | - |
+
+      ---
+
+      ## TIMERS (tempo restante)
+
+      | Timer | Estado | Restante |
+      |-------|--------|----------|
+      | Activation | {{ timer_act }} | {{ state_attr('timer.pump_activation_delay', 'remaining') or 'idle' }} |
+      | Deactivation | {{ timer_deact }} | {{ state_attr('timer.pump_deactivation_delay', 'remaining') or 'idle' }} |
+      | Safety Timeout | {{ timer_timeout }} | {{ state_attr('timer.pump_safety_timeout', 'remaining') or 'idle' }} |
+      | Anti-Cycle | {{ timer_cooldown }} | {{ state_attr('timer.pump_anti_cycle_cooldown', 'remaining') or 'idle' }} |
+
+      ---
+
+      ## FLUXO ESPERADO
+
+      1. Valvula abre ({{ valve }})
+      2. Timer activation inicia ({{ timer_act }})
+      3. Timer termina -> Bomba liga
+      4. Valvula fecha -> Timer deactivation inicia
+      5. Timer termina -> Bomba desliga
+
+      {% if valve == 'open' and switch_state == 'off' %}
+      ---
+
+      ## PROBLEMA DETECTADO!
+
+      Valvula ABERTA mas bomba DESLIGADA.
+
+      **Verificar:**
+      {% if override == 'on' %}
+      - Override esta LIGADO! Desative para automacao funcionar.
+      {% endif %}
+      {% if timer_cooldown != 'idle' %}
+      - Cooldown ATIVO! Aguarde {{ state_attr('timer.pump_anti_cycle_cooldown', 'remaining') }}.
+      {% endif %}
+      {% if timer_act == 'idle' %}
+      - Timer activation NAO iniciou! Automacao pode estar desligada ou com erro.
+      {% elif timer_act == 'active' %}
+      - Timer activation RODANDO. Aguarde {{ state_attr('timer.pump_activation_delay', 'remaining') }}.
+      {% endif %}
+      {% if auto_principal != 'on' %}
+      - Automacao principal DESLIGADA!
+      {% endif %}
+      {% endif %}
+
+  - type: entities
+    title: DEBUG - Automacoes
+    state_color: true
+    entities:
+      - entity: automation.bomba_agua_quente_controle_principal
+        name: Controle Principal
+        secondary_info: last-triggered
+      - entity: automation.bomba_timeout_seguranca
+        name: Timeout Seguranca
+        secondary_info: last-triggered
+      - entity: automation.bomba_controle_manual
+        name: Controle Manual
+        secondary_info: last-triggered
+      - entity: automation.bomba_desligamento_seguranca_corrente
+        name: Deslig. Corrente Critica
+        secondary_info: last-triggered
+
+  # ========================================
+  # BOTOES DEBUG
+  # ========================================
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Forcar Trigger
+        icon: mdi:play
+        tap_action:
+          action: call-service
+          service: automation.trigger
+          target:
+            entity_id: automation.bomba_agua_quente_controle_principal
+      - type: button
+        name: Cancelar Timers
+        icon: mdi:timer-off
+        tap_action:
+          action: call-service
+          service: timer.cancel
+          target:
+            entity_id:
+              - timer.pump_activation_delay
+              - timer.pump_deactivation_delay
+      - type: button
+        name: Ligar Bomba
+        icon: mdi:power
+        tap_action:
+          action: call-service
+          service: switch.turn_on
+          target:
+            entity_id: switch.bomba_de_circulacao_de_agua_quente
+          confirmation:
+            text: Ligar bomba manualmente?
+
+  # ========================================
   # CONFIGURACOES
   # ========================================
   - type: entities
