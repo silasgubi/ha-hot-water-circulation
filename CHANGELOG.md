@@ -5,6 +5,19 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.1] - 2025-12-12
+
+### Corrigido
+- **Bug cooldown timer**: Removida condicao `timer.pump_anti_cycle_cooldown == "idle"` que bloqueava automacao (timer removido na v3.0)
+- **Encoding UTF-8**: Corrigidos caracteres corrompidos em `automations_bomba.yaml` e `scripts_bomba.yaml`
+
+### Adicionado
+- **Dashboard v3.5**: `config/dashboard_bomba_v35.yaml` com layout grid 2 colunas
+- **Secao DEBUG**: Timers, automacoes e checklist de diagnostico no dashboard
+
+### Modificado
+- Renomeados arquivos: `automations.yaml` -> `automations_bomba.yaml`, `scripts.yaml` -> `scripts_bomba.yaml`
+
 ## [3.5.0] - 2024-12-12
 
 ### Corrigido

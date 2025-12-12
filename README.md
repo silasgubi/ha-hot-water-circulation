@@ -2,7 +2,7 @@
 
 Sistema inteligente para Home Assistant que aciona automaticamente bomba de circulação ao detectar fluxo de água quente, com detecção inteligente de inrush current via derivative.
 
-## 🎯 O Que Faz
+## O Que Faz
 
 - **Detecta** abertura de torneira água quente (Sonoff Mini)
 - **Aciona** bomba automaticamente após 3s de confirmação
@@ -11,14 +11,16 @@ Sistema inteligente para Home Assistant que aciona automaticamente bomba de circ
 - **Alerta** mudanças rápidas e desgaste emergente
 - **Protege** com desligamento crítico (>0.388A)
 
-## 🆕 Novidades v3.5
+## Novidades v3.5.1
 
+- **Dashboard Lovelace**: Layout grid 2 colunas com secao DEBUG
+- **Bug fix**: Condicao cooldown timer removida (bloqueava automacao)
+- **Encoding**: UTF-8 corrigido em todos os arquivos YAML
 - **Derivative corrigido**: `unit_time: s` (era min), `time_window: 5s` (era 5min)
-- **3 novos sensores**: Estabilização, Mudança Rápida, Desgaste Emergente
-- **Inrush ignorado**: Lógica `estabilizada AND fora_faixa` evita falsos positivos
-- **Mensagens corretas**: A/s em vez de A/min
+- **3 novos sensores**: Estabilizacao, Mudanca Rapida, Desgaste Emergente
+- **Inrush ignorado**: Logica `estabilizada AND fora_faixa` evita falsos positivos
 
-## 🛠️ Hardware
+## Hardware
 
 | Item | Modelo | Função |
 |------|--------|--------|
@@ -26,7 +28,7 @@ Sistema inteligente para Home Assistant que aciona automaticamente bomba de circ
 | Relé | Tuya TS011F | Controlar bomba (Zigbee) |
 | Bomba | Circulação 50W | Circular água quente |
 
-## 📊 Thresholds Calibrados
+## Thresholds Calibrados
 
 Baseado em **1826 amostras** (dezembro 2024):
 
@@ -36,47 +38,48 @@ Baseado em **1826 amostras** (dezembro 2024):
 | Atenção | 0.323-0.388A | Monitorar |
 | Crítico | >0.388A | Desliga imediato |
 
-## 🚀 Instalação
+## Instalacao
 
 1. **Backup** dos arquivos atuais
 2. **Copiar** arquivos de `config/` para `/config/`
 3. **Criar** input_numbers e timers (ver CLAUDE.md)
 4. **Reiniciar** Home Assistant
 
-## 📁 Estrutura
+## Estrutura
 
 ```
-├── CLAUDE.md              # Contexto para IA (Claude Code)
-├── README.md              # Este arquivo
-├── CHANGELOG.md           # Histórico de versões
+├── CLAUDE.md                      # Contexto para IA (Claude Code)
+├── README.md                      # Este arquivo
+├── CHANGELOG.md                   # Historico de versoes
 ├── config/
-│   ├── sensors.yaml       # Derivative + Statistics
-│   ├── template_sensors.yaml # Binary sensors v3.5
-│   ├── automations.yaml   # Automações completas
-│   └── scripts.yaml       # Teste, reset, relatório
+│   ├── sensors.yaml               # Derivative + Statistics
+│   ├── template_sensors.yaml      # Binary sensors v3.5
+│   ├── automations_bomba.yaml     # Automacoes completas
+│   ├── scripts_bomba.yaml         # Teste, reset, relatorio
+│   └── dashboard_bomba_v35.yaml   # Dashboard Lovelace v3.5
 └── docs/
-    ├── decisions/         # ADRs
-    └── lessons-learned.md # Lições aprendidas
+    ├── decisions/                 # ADRs
+    └── lessons-learned.md         # Licoes aprendidas
 ```
 
-## 📚 Documentação
+## Documentacao
 
 - **[CLAUDE.md](CLAUDE.md)** - Contexto técnico completo
 - **[CHANGELOG.md](CHANGELOG.md)** - Histórico de versões
 - **[docs/lessons-learned.md](docs/lessons-learned.md)** - Lições aprendidas
 
-## ⚠️ Avisos
+## Avisos
 
 - **NUNCA** use dados placeholder - sempre valores reais
 - **SEMPRE** faça backup antes de atualizar
 - **TESTE** em ambiente seguro primeiro
 
-## 📝 Licença
+## Licenca
 
 MIT - Livre para uso e modificação
 
 ---
 
-**Versão**: 3.5  
-**Última Atualização**: Dezembro 2024  
-**Status**: Pronto para Deploy ✅
+**Versao**: 3.5.1
+**Ultima Atualizacao**: Dezembro 2025
+**Status**: Em Producao

@@ -37,9 +37,6 @@
         - conditions:
             - condition: trigger
               id: fluxo_aberto
-            - condition: state
-              entity_id: timer.pump_anti_cycle_cooldown
-              state: "idle"
           sequence:
             - service: timer.cancel
               target:
