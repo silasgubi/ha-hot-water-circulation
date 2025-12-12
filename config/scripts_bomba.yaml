@@ -6,193 +6,209 @@ pump_system_test:
   sequence:
     - service: logbook.log
       data:
-        name: "ðŸ§ª TESTE SISTEMA INICIADO"
+        name: "🧪 TESTE SISTEMA INICIADO"
         message: "Iniciando teste completo do sistema da bomba"
-    
+
     # Desabilita override temporariamente
     - service: input_boolean.turn_off
       target:
         entity_id: input_boolean.pump_manual_override
-    
+
     - delay: "00:00:02"
-    
+
     # Liga bomba
     - service: switch.turn_on
       target:
         entity_id: switch.bomba_de_circulacao_de_agua_quente
-    
+
     - service: logbook.log
       data:
-        name: "ðŸ§ª Bomba Ligada"
+        name: "🧪 Bomba Ligada"
         message: "Aguardando 5 segundos para estabilizar corrente..."
-    
+
     - delay: "00:00:05"
-    
+
     # Verifica corrente
     - service: system_log.write
       data:
         message: >
-          ðŸ§ª TESTE SISTEMA - Bomba Ãgua Quente | 
-          Corrente medida: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A | 
+          🧪 TESTE SISTEMA - Bomba Água Quente |
+          Corrente medida: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A |
           Faixa normal: {{ states('input_number.pump_current_normal_min') }}-{{ states('input_number.pump_current_normal_max') }}A
         level: info
-    
+
     - service: logbook.log
       data:
-        name: "ðŸ§ª MediÃ§Ã£o"
+        name: "🧪 Medição"
         message: "Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A"
-    
+
     # Desliga bomba
     - service: switch.turn_off
       target:
         entity_id: switch.bomba_de_circulacao_de_agua_quente
-    
+
     - service: logbook.log
       data:
-        name: "âœ… TESTE CONCLUÃDO"
+        name: "✅ TESTE CONCLUÍDO"
         message: "Teste do sistema finalizado com sucesso"
-    
-    # NotificaÃ§Ã£o com resultado
+
+    # Notificação com resultado
     - service: persistent_notification.create
       data:
-        title: "âœ… Teste Sistema ConcluÃ­do"
+        title: "✅ Teste Sistema Concluído"
         message: >
           Teste executado com sucesso!
-          
+
           **Corrente medida:** {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
-          
+
           **Faixa normal:** {{ states('input_number.pump_current_normal_min') }}-{{ states('input_number.pump_current_normal_max') }}A
-          
+
           **Status:** {% set corrente = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
           {% set min = states('input_number.pump_current_normal_min') | float(0.303) %}
           {% set max = states('input_number.pump_current_normal_max') | float(0.323) %}
-          {% if min <= corrente <= max %}âœ… NORMAL{% else %}âš ï¸ ANORMAL{% endif %}
-          
-          **HorÃ¡rio:** {{ now().strftime('%H:%M:%S') }}
+          {% if min <= corrente <= max %}✅ NORMAL{% else %}⚠️ ANORMAL{% endif %}
+
+          **Horário:** {{ now().strftime('%H:%M:%S') }}
         notification_id: pump_test_result
+
 pump_emergency_reset:
-  alias: "Bomba - Reset EmergÃªncia"
+  alias: "Bomba - Reset Emergência"
   description: "Desliga bomba, cancela timers e reseta sistema"
   mode: single
   icon: mdi:alert-octagon
   sequence:
     - service: logbook.log
       data:
-        name: "ðŸ›‘ RESET DE EMERGÃŠNCIA INICIADO"
+        name: "🛑 RESET DE EMERGÊNCIA INICIADO"
         message: "Executando reset completo do sistema"
-    
+
     # Desliga bomba imediatamente
     - service: switch.turn_off
       target:
         entity_id: switch.bomba_de_circulacao_de_agua_quente
-    
+
     # Cancela todos os timers
     - service: timer.cancel
       target:
-        entity_id: 
+        entity_id:
           - timer.pump_activation_delay
           - timer.pump_deactivation_delay
           - timer.pump_safety_timeout
-    
+
     # Desabilita controles manuais
     - service: input_boolean.turn_off
       target:
         entity_id:
           - input_boolean.pump_manual_override
           - input_boolean.pump_manual_control
-    
+
     - delay: "00:00:01"
-    
+
     - service: system_log.write
       data:
-        message: "ðŸ›‘ RESET DE EMERGÃŠNCIA - Bomba Ãgua Quente: Sistema resetado | Bomba desligada | Timers cancelados"
+        message: "🛑 RESET DE EMERGÊNCIA - Bomba Água Quente: Sistema resetado | Bomba desligada | Timers cancelados"
         level: warning
-    
+
     - service: logbook.log
       data:
-        name: "ðŸ›‘ RESET DE EMERGÃŠNCIA CONCLUÃDO"
+        name: "🛑 RESET DE EMERGÊNCIA CONCLUÍDO"
         message: "Sistema resetado - bomba desligada e timers cancelados"
-    
-    # NotificaÃ§Ã£o persistente
+
+    # Notificação persistente
     - service: persistent_notification.create
       data:
-        title: "ðŸ›‘ Reset de EmergÃªncia Executado"
+        title: "🛑 Reset de Emergência Executado"
         message: >
           O sistema foi resetado com sucesso:
-          
-          âœ” Bomba desligada
-          âœ” Todos os timers cancelados
-          âœ” Controles manuais desabilitados
-          âœ” Sistema pronto para operaÃ§Ã£o normal
-          
-          **HorÃ¡rio:** {{ now().strftime('%H:%M:%S') }}
+
+          ✔ Bomba desligada
+          ✔ Todos os timers cancelados
+          ✔ Controles manuais desabilitados
+          ✔ Sistema pronto para operação normal
+
+          **Horário:** {{ now().strftime('%H:%M:%S') }}
         notification_id: pump_emergency
+
 pump_detailed_report:
-  alias: "Bomba - RelatÃ³rio Detalhado"
-  description: "Gera relatÃ³rio completo com todas as mÃ©tricas v3.0"
+  alias: "Bomba - Relatório Detalhado"
+  description: "Gera relatório completo com todas as métricas v3.5"
   mode: single
   icon: mdi:file-chart
   sequence:
     - service: persistent_notification.create
       data:
-        title: "ðŸ“Š RELATÃ“RIO DETALHADO - BOMBA v3.0"
+        title: "📊 RELATÓRIO DETALHADO - BOMBA v3.5"
         message: >
           **Data/Hora:** {{ now().strftime('%d/%m/%Y %H:%M') }}
-          
+
           ---
-          
-          ## ðŸ“ˆ ESTATÃSTICAS DO DIA
-          
-          â€¢ Runtime: {{ states('sensor.bomba_runtime_hoje') }}h
-          â€¢ Timeouts: {{ states('counter.pump_timeout_events') }}
-          â€¢ Alertas corrente: {{ states('counter.pump_current_alerts') }}
-          
+
+          ## 📈 ESTATÍSTICAS DO DIA
+
+          • Runtime: {{ states('sensor.bomba_runtime_hoje') }}h
+          • Timeouts: {{ states('counter.pump_timeout_events') }}
+          • Alertas corrente: {{ states('counter.pump_current_alerts') }}
+
           ---
-          
-          ## âš¡ STATUS ATUAL
-          
-          â€¢ **Bomba:** {{ states('sensor.bomba_status') }}
-          â€¢ **Sistema:** {{ states('sensor.bomba_sistema_status') }}
-          â€¢ **Corrente:** {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
-          â€¢ **Fluxo:** {{ states('valve.hot_water') }}
-          â€¢ **Funcionando:** {{ states('binary_sensor.bomba_funcionando') }}
-          â€¢ **Corrente anormal:** {{ states('binary_sensor.bomba_corrente_anormal') }}
-          
+
+          ## ⚡ STATUS ATUAL
+
+          • **Bomba:** {{ states('sensor.bomba_status') }}
+          • **Sistema:** {{ states('sensor.bomba_sistema_status') }}
+          • **Corrente:** {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
+          • **Fluxo:** {{ states('valve.hot_water') }}
+          • **Funcionando:** {{ states('binary_sensor.bomba_funcionando') }}
+          • **Corrente anormal:** {{ states('binary_sensor.bomba_corrente_anormal') }}
+          • **Estabilizada:** {{ states('binary_sensor.bomba_corrente_estabilizada') }}
+          • **Mudança rápida:** {{ states('binary_sensor.bomba_mudanca_rapida_corrente') }}
+
           ---
-          
-          ## âš™ï¸ CONFIGURAÃ‡Ã•ES ATUAIS
-          
-          â€¢ **Delay ligar:** {{ states('input_number.pump_activation_delay_seconds') }}s
-          â€¢ **Delay desligar:** {{ states('input_number.pump_deactivation_delay_seconds') }}s
-          â€¢ **Timeout:** {{ states('input_number.pump_timeout_minutes') }}min
-          
+
+          ## ⚙️ CONFIGURAÇÕES ATUAIS
+
+          • **Delay ligar:** {{ states('input_number.pump_activation_delay_seconds') }}s
+          • **Delay desligar:** {{ states('input_number.pump_deactivation_delay_seconds') }}s
+          • **Timeout:** {{ states('input_number.pump_timeout_minutes') }}min
+
           ---
-          
-          ## âš¡ THRESHOLDS CORRENTE
-          
-          â€¢ **Normal:** {{ states('input_number.pump_current_normal_min') }}-{{ states('input_number.pump_current_normal_max') }}A
-          â€¢ **Faixa calibrada:** 0.303-0.323A (1365 mediÃ§Ãµes)
-          
+
+          ## ⚡ THRESHOLDS CORRENTE
+
+          • **Normal:** {{ states('input_number.pump_current_normal_min') }}-{{ states('input_number.pump_current_normal_max') }}A
+          • **Crítico:** {{ states('input_number.pump_current_critical_max') }}A
+          • **Faixa calibrada:** 0.303-0.323A (1826 medições)
+
           ---
-          
-          ## â±ï¸ TIMERS
-          
-          â€¢ **Activation:** {{ states('timer.pump_activation_delay') }}
-          â€¢ **Deactivation:** {{ states('timer.pump_deactivation_delay') }}
-          â€¢ **Safety timeout:** {{ states('timer.pump_safety_timeout') }}
-          
+
+          ## 📊 MÉDIAS ESTATÍSTICAS
+
+          • **Média 24h:** {{ states('sensor.bomba_corrente_media_24h') }}A
+          • **Média 7d:** {{ states('sensor.bomba_corrente_media_7d') }}A
+          • **Média 30d:** {{ states('sensor.bomba_corrente_media_30d') }}A
+          • **Máxima 24h:** {{ states('sensor.bomba_corrente_maxima_24h') }}A
+
           ---
-          
-          ## ðŸ• ÃšLTIMOS EVENTOS
-          
-          â€¢ **Ãšltimo timeout:** {{ states('input_datetime.pump_last_timeout') or 'Nenhum' }}
-          
+
+          ## ⏱️ TIMERS
+
+          • **Activation:** {{ states('timer.pump_activation_delay') }}
+          • **Deactivation:** {{ states('timer.pump_deactivation_delay') }}
+          • **Safety timeout:** {{ states('timer.pump_safety_timeout') }}
+
           ---
-          
-          ## ðŸ¤– AUTOMAÃ‡Ã•ES
-          
-          â€¢ **Controle Principal:** {{ states('automation.bomba_agua_quente_controle_principal') }}
-          â€¢ **Timeout SeguranÃ§a:** {{ states('automation.bomba_timeout_seguranca') }}
-          â€¢ **Controle Manual:** {{ states('automation.bomba_controle_manual') }}
-          â€¢ **Alerta Corrente:** {{ states('automation.bomba_alerta_corrente_anormal') }}
+
+          ## 🕐 ÚLTIMOS EVENTOS
+
+          • **Último timeout:** {{ states('input_datetime.pump_last_timeout') or 'Nenhum' }}
+
+          ---
+
+          ## 🤖 AUTOMAÇÕES
+
+          • **Controle Principal:** {{ states('automation.bomba_agua_quente_controle_principal') }}
+          • **Timeout Segurança:** {{ states('automation.bomba_timeout_seguranca') }}
+          • **Controle Manual:** {{ states('automation.bomba_controle_manual') }}
+          • **Corrente Crítica:** {{ states('automation.bomba_desligamento_seguranca_corrente') }}
+          • **Mudança Rápida:** {{ states('automation.bomba_alerta_mudanca_rapida') }}
+          • **Desgaste Emergente:** {{ states('automation.bomba_alerta_desgaste_emergente') }}
         notification_id: pump_detailed_report
