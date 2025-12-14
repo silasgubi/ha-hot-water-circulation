@@ -1,0 +1,98 @@
+# ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ HELPERS OPCIONAIS - DASHBOARD BOMBA ÁGUA QUENTE v3.5.1                                                                          ║
+# ║ Estes helpers são OPCIONAIS para funcionalidades extras do dashboard                                                            ║
+# ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# MODO DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# Este input_boolean controla a visibilidade da seção DEBUG no dashboard Mushroom
+# Se não existir, a seção DEBUG será sempre exibida
+# Se existir e estiver OFF, a seção DEBUG fica oculta
+
+input_boolean:
+  pump_debug_mode:
+    name: Modo Debug da Bomba
+    icon: mdi:bug
+    initial: off  # Deixe off para esconder a seção DEBUG por padrão
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# COMO USAR
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# Opção 1: Adicionar ao configuration.yaml
+# ----------------------------------------
+# Copie o bloco input_boolean acima para seu configuration.yaml:
+#
+# input_boolean:
+#   pump_debug_mode:
+#     name: Modo Debug da Bomba
+#     icon: mdi:bug
+#     initial: off
+
+# Opção 2: Adicionar via UI (RECOMENDADO)
+# ----------------------------------------
+# 1. Vá em Configurações → Dispositivos e Serviços → Helpers
+# 2. Clique em + CRIAR HELPER
+# 3. Selecione "Alternador" (Toggle)
+# 4. Preencha:
+#    - Nome: Modo Debug da Bomba
+#    - ID da entidade: pump_debug_mode
+#    - Ícone: mdi:bug
+# 5. Salve
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# COMPORTAMENTO
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# Com pump_debug_mode = ON:
+# - Seção DEBUG fica VISÍVEL no dashboard
+# - Mostra timers, automações, controles avançados
+# - Útil para troubleshooting
+
+# Com pump_debug_mode = OFF:
+# - Seção DEBUG fica OCULTA no dashboard
+# - Dashboard mais limpo e focado no essencial
+# - Recomendado para uso diário
+
+# Sem pump_debug_mode (helper não existe):
+# - Seção DEBUG fica SEMPRE VISÍVEL
+# - Comportamento padrão se você não criar o helper
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# CONTROLE VIA DASHBOARD
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# Você pode adicionar um switch no dashboard para ativar/desativar o modo DEBUG:
+
+# - type: entity
+#   entity: input_boolean.pump_debug_mode
+#   name: Modo Debug
+#   icon: mdi:bug
+
+# Ou um button card:
+
+# - type: button
+#   entity: input_boolean.pump_debug_mode
+#   name: Debug
+#   icon: mdi:bug
+#   tap_action:
+#     action: toggle
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# ALTERNATIVA: REMOVER SEÇÃO DEBUG
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# Se você NÃO quiser usar a seção DEBUG de forma alguma:
+# 1. Abra config/lovelace_bomba_sidebar.yaml
+# 2. Localize a SEÇÃO 8: DEBUG
+# 3. Apague todo o bloco (incluindo o conditional)
+# 4. Salve e recarregue o dashboard
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# NOTA IMPORTANTE
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+# A versão NATIVE do dashboard (lovelace_bomba_sidebar_native.yaml) NÃO usa conditional
+# Ela sempre mostra a seção DEBUG
+# Se quiser esconder, precisa REMOVER manualmente a seção do arquivo YAML
