@@ -59,7 +59,9 @@ CAMADA 3 (ALERTAS COMBINADOS):
 | Binary sensors + Templates | `config/template_sensors.yaml` | Detecção inteligente |
 | Automações v3.5 | `config/automations_bomba.yaml` | Controle + alertas |
 | Scripts | `config/scripts_bomba.yaml` | Teste, reset, relatório |
-| Dashboard | `config/dashboard_bomba_v35.yaml` | Lovelace v3.5 com debug |
+| Dashboard Sidebar (Mushroom) | `config/lovelace_bomba_sidebar.yaml` | Dashboard completo para sidebar (RECOMENDADO) |
+| Dashboard Sidebar (Native) | `config/lovelace_bomba_sidebar_native.yaml` | Dashboard sem custom cards |
+| Dashboard Card | `config/dashboard_bomba_v35.yaml` | Card único v3.5 (legado) |
 
 ### Problemas Conhecidos (Quick Fix)
 | Problema | Solução |
@@ -141,12 +143,38 @@ ha state get binary_sensor.bomba_desgaste_emergente
 # Ligar bomba → após ~2s estabilizada=on → corrente_anormal=off (inrush ignorado)
 ```
 
+## Dashboard
+
+### Instalação Sidebar (v3.5.1)
+
+Dois dashboards disponíveis para adicionar à aba lateral do HA:
+
+1. **`lovelace_bomba_sidebar.yaml`** (RECOMENDADO)
+   - Interface moderna com Mushroom Cards
+   - Requer: HACS + Mushroom Cards + Mini Graph Card
+   - Melhor UX mobile e desktop
+
+2. **`lovelace_bomba_sidebar_native.yaml`**
+   - Usa apenas cards nativos do HA
+   - Sem dependências
+   - Funciona imediatamente
+
+**Instalação rápida:**
+1. Configurações → Dashboards → Editar Dashboard
+2. + ADICIONAR VIEW (tipo: sidebar)
+3. Editar em YAML Bruto → colar conteúdo
+4. Salvar
+
+**Guia completo:** [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
+
 ## Próximos Passos
 - [x] Deploy v3.5 em produção (2025-12-12)
+- [x] Dashboard sidebar v3.5.1 (2025-12-14)
 - [ ] Validar comportamento inrush (monitoramento continuo)
 - [ ] Coletar dados 7 dias para confirmar thresholds
 - [ ] Ajustar se necessario
 
 ## Links
+- **Dashboard Installation Guide**: [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
 - **Lessons Learned**: [docs/lessons-learned.md](docs/lessons-learned.md)
 - **ADR Corrente vs Potência**: [docs/decisions/0001-current-vs-power.md](docs/decisions/0001-current-vs-power.md)

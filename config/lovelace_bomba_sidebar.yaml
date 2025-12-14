@@ -1,0 +1,662 @@
+# ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ DASHBOARD BOMBA ÁGUA QUENTE - HOME ASSISTANT v3.5.1                                                                             ║
+# ║ Dashboard completo para sidebar - Sistema de Circulação de Água Quente                                                          ║
+# ║ Arquitetura v3.5: Derivative (dI/dt) com detecção inteligente de inrush                                                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+title: Bomba Água Quente
+path: bomba-agua-quente
+icon: mdi:pump
+theme: default
+type: sidebar
+badges: []
+cards:
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 1: STATUS PRINCIPAL
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      # Header com status principal
+      - type: custom:mushroom-template-card
+        primary: Bomba Água Quente
+        secondary: "{{ states('sensor.bomba_status') }}"
+        icon: mdi:pump
+        icon_color: >
+          {% if is_state('binary_sensor.bomba_corrente_critica', 'on') %}
+            red
+          {% elif is_state('binary_sensor.bomba_corrente_anormal', 'on') %}
+            orange
+          {% elif states('sensor.bomba_status') == 'Funcionando' %}
+            green
+          {% else %}
+            grey
+          {% endif %}
+        badge_icon: >
+          {% if is_state('binary_sensor.bomba_corrente_critica', 'on') %}
+            mdi:alert-octagon
+          {% elif is_state('binary_sensor.bomba_corrente_anormal', 'on') %}
+            mdi:alert
+          {% endif %}
+        badge_color: red
+        tap_action:
+          action: none
+        card_mod:
+          style: |
+            ha-card {
+              background: var(--primary-background-color);
+              border: 2px solid var(--primary-color);
+            }
+
+      # Status em Cards Horizontais
+      - type: horizontal-stack
+        cards:
+          - type: entity
+            entity: valve.hot_water
+            name: Fluxo Água
+            icon: mdi:water-pump
+            state_color: true
+          - type: entity
+            entity: switch.bomba_de_circulacao_de_agua_quente
+            name: Bomba
+            icon: mdi:power
+            state_color: true
+          - type: entity
+            entity: binary_sensor.bomba_corrente_estabilizada
+            name: Estável
+            icon: mdi:sine-wave
+            state_color: true
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 2: MONITORAMENTO DE CORRENTE (GAUGE + MÉTRICAS)
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Monitoramento de Corrente
+        subtitle: v3.5.1 - Detecção Inteligente
+
+      # Gauge Principal de Corrente
+      - type: gauge
+        entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+        name: Corrente Atual
+        unit: A
+        min: 0
+        max: 0.5
+        needle: true
+        severity:
+          green: 0.303
+          yellow: 0.323
+          red: 0.388
+        card_mod:
+          style: |
+            ha-card {
+              background: linear-gradient(135deg, var(--card-background-color) 0%, rgba(3, 169, 244, 0.1) 100%);
+            }
+
+      # Métricas em Grid 2x2
+      - type: grid
+        square: false
+        columns: 2
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+            name: Corrente
+            icon: mdi:current-ac
+            primary_info: state
+            secondary_info: last-changed
+            icon_color: blue
+
+          - type: custom:mushroom-entity-card
+            entity: sensor.bomba_taxa_mudanca_corrente
+            name: Taxa (dI/dt)
+            icon: mdi:chart-line-variant
+            primary_info: state
+            secondary_info: last-changed
+            icon_color: purple
+
+          - type: custom:mushroom-entity-card
+            entity: sensor.bomba_corrente_media_24h
+            name: Média 24h
+            icon: mdi:chart-areaspline
+            primary_info: state
+            secondary_info: none
+            icon_color: cyan
+
+          - type: custom:mushroom-entity-card
+            entity: sensor.bomba_corrente_media_7d
+            name: Média 7d
+            icon: mdi:chart-timeline-variant
+            primary_info: state
+            secondary_info: none
+            icon_color: teal
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 3: DIAGNÓSTICO INTELIGENTE v3.5
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Diagnóstico v3.5
+        subtitle: Análise em Tempo Real
+
+      # Card de Diagnóstico Principal
+      - type: markdown
+        content: >-
+          {% set corrente = states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) %}
+          {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0) %}
+          {% set switch_on = is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') %}
+          {% set valve_open = is_state('valve.hot_water', 'open') %}
+          {% set estabilizada = is_state('binary_sensor.bomba_corrente_estabilizada', 'on') %}
+          {% set mudanca_rapida = is_state('binary_sensor.bomba_mudanca_rapida_corrente', 'on') %}
+          {% set anormal = is_state('binary_sensor.bomba_corrente_anormal', 'on') %}
+          {% set critica = is_state('binary_sensor.bomba_corrente_critica', 'on') %}
+          {% set min_corrente = states('input_number.pump_current_normal_min') | float(0.303) %}
+          {% set max_corrente = states('input_number.pump_current_normal_max') | float(0.323) %}
+
+          ### 📊 STATUS ATUAL
+
+          | Parâmetro | Valor |
+          |-----------|-------|
+          | **Válvula** | {{ '🟢 ABERTA' if valve_open else '🔴 FECHADA' }} |
+          | **Bomba** | {{ '🟢 LIGADA' if switch_on else '⚪ DESLIGADA' }} |
+          | **Corrente** | **{{ corrente }}A** |
+          | **Taxa (dI/dt)** | {{ taxa \| round(4) }} A/s |
+          | **Estabilizada** | {{ '✅ SIM' if estabilizada else '⏳ NÃO' }} |
+
+          ---
+
+          {% if critica %}
+          ### 🚨 CORRENTE CRÍTICA!
+
+          **⚠️ Corrente {{ corrente }}A acima do limite crítico!**
+
+          **AÇÃO IMEDIATA:** Sistema desligará automaticamente.
+
+          **Verificar:**
+          - Bloqueio do rotor
+          - Travamento de rolamento
+          - Obstrução na tubulação
+
+          {% elif mudanca_rapida %}
+          ### ⚡ MUDANÇA RÁPIDA
+
+          **Taxa {{ taxa | round(4) }} A/s muito alta!**
+
+          **Possíveis causas:**
+          - Bloqueio do rotor
+          - Travamento de rolamento
+          - Obstrução na tubulação
+          - Variação brusca de carga
+
+          {% elif switch_on and not estabilizada %}
+          ### ⏳ ESTABILIZANDO (INRUSH)
+
+          Bomba ligando, aguardando estabilização (~2s)...
+
+          Taxa atual: **{{ taxa | round(4) }} A/s**
+
+          ℹ️ *Comportamento normal durante partida*
+
+          {% elif anormal %}
+          ### ⚠️ CORRENTE ANORMAL
+
+          **Corrente {{ corrente }}A fora da faixa {{ min_corrente }}-{{ max_corrente }}A**
+
+          {% if corrente < min_corrente %}
+          **Problema:** Corrente BAIXA
+
+          Verificar:
+          - Bomba sem carga
+          - Problema elétrico
+          - Desgaste de componentes
+          {% else %}
+          **Problema:** Corrente ALTA
+
+          Verificar:
+          - Atrito excessivo
+          - Desgaste de rolamentos
+          - Resistência na tubulação
+          {% endif %}
+
+          {% elif switch_on and estabilizada %}
+          ### ✅ FUNCIONANDO NORMALMENTE
+
+          Corrente: **{{ corrente }}A** (faixa: {{ min_corrente }}-{{ max_corrente }}A)
+
+          Sistema operando dentro dos parâmetros normais.
+
+          {% elif valve_open and not switch_on %}
+          ### 🚰 FLUXO DETECTADO
+
+          Válvula ABERTA - Aguardando delay de ativação...
+
+          {% else %}
+          ### ⏸️ STANDBY
+
+          Aguardando abertura de torneira
+
+          {% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              background: var(--card-background-color);
+              border-left: 4px solid
+                {% if is_state('binary_sensor.bomba_corrente_critica', 'on') %}
+                  var(--error-color)
+                {% elif is_state('binary_sensor.bomba_corrente_anormal', 'on') %}
+                  var(--warning-color)
+                {% else %}
+                  var(--success-color)
+                {% endif %};
+            }
+
+      # Binary Sensors de Detecção
+      - type: entities
+        title: Sensores de Detecção v3.5
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: binary_sensor.bomba_corrente_estabilizada
+            name: Corrente Estabilizada
+            secondary_info: last-changed
+            icon: mdi:sine-wave
+          - entity: binary_sensor.bomba_mudanca_rapida_corrente
+            name: Mudança Rápida
+            secondary_info: last-changed
+            icon: mdi:lightning-bolt
+          - entity: binary_sensor.bomba_desgaste_emergente
+            name: Desgaste Emergente
+            secondary_info: last-changed
+            icon: mdi:trending-up
+          - type: divider
+          - entity: binary_sensor.bomba_corrente_anormal
+            name: Corrente Anormal
+            icon: mdi:flash-alert
+          - entity: binary_sensor.bomba_corrente_critica
+            name: Corrente Crítica
+            icon: mdi:alert-octagon
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 4: HISTÓRICO E GRÁFICOS
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Histórico
+        subtitle: Últimas 2 horas
+
+      # Gráfico de Histórico
+      - type: history-graph
+        hours_to_show: 2
+        refresh_interval: 60
+        entities:
+          - entity: valve.hot_water
+            name: Fluxo
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+            name: Corrente (A)
+          - entity: sensor.bomba_taxa_mudanca_corrente
+            name: Taxa (dI/dt)
+
+      # Statistics Card
+      - type: custom:mini-graph-card
+        name: Corrente - 24h
+        icon: mdi:chart-line
+        entities:
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+            name: Corrente
+            color: '#03a9f4'
+          - entity: sensor.bomba_corrente_media_24h
+            name: Média 24h
+            color: '#ff9800'
+            show_line: true
+            show_points: false
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        smoothing: true
+        lower_bound: 0
+        upper_bound: 0.5
+        show:
+          labels: true
+          labels_secondary: true
+          extrema: true
+          fill: fade
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 5: CONTROLES
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Controles
+        subtitle: Operação do Sistema
+
+      # Controles Principais
+      - type: grid
+        square: false
+        columns: 2
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.pump_manual_override
+            name: Override Manual
+            icon: mdi:shield-off
+            tap_action:
+              action: toggle
+            icon_color: red
+
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.pump_manual_control
+            name: Controle Manual
+            icon: mdi:hand-back-right
+            tap_action:
+              action: toggle
+            icon_color: orange
+
+          - type: custom:mushroom-entity-card
+            entity: script.pump_system_test
+            name: Teste Sistema
+            icon: mdi:test-tube
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              service_data:
+                entity_id: script.pump_system_test
+            icon_color: blue
+
+          - type: custom:mushroom-entity-card
+            entity: script.pump_emergency_reset
+            name: Reset Emergência
+            icon: mdi:alert-octagon
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              service_data:
+                entity_id: script.pump_emergency_reset
+              confirmation:
+                text: Executar reset de emergência?
+            icon_color: red
+
+      # Botões de Ação
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Relatório
+            icon: mdi:file-chart
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              target:
+                entity_id: script.pump_detailed_report
+            card_mod:
+              style: |
+                ha-card {
+                  background: rgba(3, 169, 244, 0.1);
+                }
+
+          - type: button
+            name: Histórico
+            icon: mdi:chart-line
+            tap_action:
+              action: more-info
+              entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+            card_mod:
+              style: |
+                ha-card {
+                  background: rgba(76, 175, 80, 0.1);
+                }
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 6: HARDWARE
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Hardware
+        subtitle: Dispositivos Conectados
+
+      - type: entities
+        show_header_toggle: false
+        entities:
+          - entity: valve.hot_water
+            name: Válvula Fluxo (Sonoff Mini)
+            secondary_info: last-changed
+            icon: mdi:valve
+          - entity: switch.bomba_de_circulacao_de_agua_quente
+            name: Bomba (Tuya TS011F)
+            secondary_info: last-changed
+            icon: mdi:pump
+          - type: divider
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_corrente
+            name: Corrente
+            icon: mdi:current-ac
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_potencia
+            name: Potência
+            icon: mdi:flash
+          - entity: sensor.bomba_de_circulacao_de_agua_quente_voltagem
+            name: Voltagem
+            icon: mdi:lightning-bolt
+          - type: divider
+          - entity: sensor.bomba_runtime_hoje
+            name: Tempo de Uso Hoje
+            icon: mdi:clock-outline
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 7: CONFIGURAÇÕES
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: vertical-stack
+    cards:
+      - type: custom:mushroom-title-card
+        title: Configurações
+        subtitle: Parâmetros do Sistema
+
+      # Thresholds de Corrente
+      - type: entities
+        title: Thresholds de Corrente
+        show_header_toggle: false
+        entities:
+          - entity: input_number.pump_current_normal_min
+            name: Corrente Normal Mínima
+            icon: mdi:arrow-down-bold
+          - entity: input_number.pump_current_normal_max
+            name: Corrente Normal Máxima
+            icon: mdi:arrow-up-bold
+          - entity: input_number.pump_current_critical_max
+            name: Corrente Crítica
+            icon: mdi:alert-octagon
+
+      # Delays e Timeouts
+      - type: entities
+        title: Delays e Timeouts
+        show_header_toggle: false
+        entities:
+          - entity: input_number.pump_activation_delay_seconds
+            name: Delay Ativação (s)
+            icon: mdi:timer-play
+          - entity: input_number.pump_deactivation_delay_seconds
+            name: Delay Desativação (s)
+            icon: mdi:timer-stop
+          - entity: input_number.pump_timeout_minutes
+            name: Timeout Segurança (min)
+            icon: mdi:timer-alert
+
+      # Alertas
+      - type: entities
+        title: Alertas
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.pump_alerts_enabled
+            name: Alertas TTS Habilitados
+            icon: mdi:volume-high
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 8: DEBUG (OPCIONAL - COMENTAR SE NÃO NECESSÁRIO)
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: conditional
+    conditions:
+      - entity: input_boolean.pump_debug_mode
+        state: "on"
+    card:
+      type: vertical-stack
+      cards:
+        - type: custom:mushroom-title-card
+          title: 🐛 DEBUG
+          subtitle: Informações de Depuração
+
+        # Timers
+        - type: entities
+          title: Timers
+          state_color: true
+          entities:
+            - entity: timer.pump_activation_delay
+              name: Timer Ativação
+              secondary_info: last-changed
+            - entity: timer.pump_deactivation_delay
+              name: Timer Desativação
+              secondary_info: last-changed
+            - entity: timer.pump_safety_timeout
+              name: Timer Timeout
+              secondary_info: last-changed
+
+        # Automações
+        - type: entities
+          title: Automações
+          state_color: true
+          entities:
+            - entity: automation.bomba_agua_quente_controle_principal
+              name: Controle Principal
+              secondary_info: last-triggered
+            - entity: automation.bomba_timeout_seguranca
+              name: Timeout Segurança
+              secondary_info: last-triggered
+            - entity: automation.bomba_controle_manual
+              name: Controle Manual
+              secondary_info: last-triggered
+
+        # Controles de Debug
+        - type: horizontal-stack
+          cards:
+            - type: button
+              name: Forçar Trigger
+              icon: mdi:play
+              tap_action:
+                action: call-service
+                service: automation.trigger
+                target:
+                  entity_id: automation.bomba_agua_quente_controle_principal
+
+            - type: button
+              name: Cancelar Timers
+              icon: mdi:timer-off
+              tap_action:
+                action: call-service
+                service: timer.cancel
+                target:
+                  entity_id:
+                    - timer.pump_activation_delay
+                    - timer.pump_deactivation_delay
+
+            - type: button
+              name: Ligar Bomba
+              icon: mdi:power
+              tap_action:
+                action: call-service
+                service: switch.turn_on
+                target:
+                  entity_id: switch.bomba_de_circulacao_de_agua_quente
+                confirmation:
+                  text: Ligar bomba manualmente?
+
+        # Estado do Sistema
+        - type: markdown
+          content: >
+            {% set valve = states('valve.hot_water') %}
+            {% set switch_state = states('switch.bomba_de_circulacao_de_agua_quente') %}
+            {% set override = states('input_boolean.pump_manual_override') %}
+            {% set timer_act = states('timer.pump_activation_delay') %}
+            {% set timer_deact = states('timer.pump_deactivation_delay') %}
+            {% set timer_timeout = states('timer.pump_safety_timeout') %}
+            {% set auto_principal = states('automation.bomba_agua_quente_controle_principal') %}
+
+            ### 🔍 CHECKLIST DEBUG
+
+            | Item | Status |
+            |------|--------|
+            | Válvula | {{ valve }} {{ '✅' if valve == 'open' else '' }} |
+            | Override | {{ override }} {{ '❌ BLOQUEADO!' if override == 'on' else '✅' }} |
+            | Automação | {{ auto_principal }} {{ '❌ DESLIGADA!' if auto_principal != 'on' else '✅' }} |
+            | Bomba | {{ switch_state }} |
+
+            ---
+
+            **TIMERS**
+
+            - **Activation:** {{ timer_act }} ({{ state_attr('timer.pump_activation_delay', 'remaining') or '-' }})
+            - **Deactivation:** {{ timer_deact }} ({{ state_attr('timer.pump_deactivation_delay', 'remaining') or '-' }})
+            - **Timeout:** {{ timer_timeout }} ({{ state_attr('timer.pump_safety_timeout', 'remaining') or '-' }})
+
+            {% if valve == 'open' and switch_state == 'off' %}
+            ---
+
+            ### ⚠️ PROBLEMA DETECTADO!
+
+            **Válvula ABERTA mas bomba DESLIGADA**
+
+            {% if override == 'on' %}
+            - ❌ Override LIGADO! Desative.
+            {% endif %}
+
+            {% if timer_act == 'idle' %}
+            - ❌ Timer NÃO iniciou!
+            {% elif timer_act == 'active' %}
+            - ⏳ Timer RODANDO. Aguarde.
+            {% endif %}
+
+            {% if auto_principal != 'on' %}
+            - ❌ Automação DESLIGADA!
+            {% endif %}
+
+            {% endif %}
+
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  # SEÇÃO 9: INFORMAÇÕES DO SISTEMA
+  # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  - type: markdown
+    content: >
+      ---
+
+      **Sistema de Bomba de Água Quente v3.5.1**
+
+      - ✅ Detecção inteligente de inrush current
+
+      - ✅ Monitoramento derivative (dI/dt) em tempo real
+
+      - ✅ Análise de tendências de longo prazo
+
+      - ✅ Proteção contra corrente crítica
+
+      ---
+
+      📋 Thresholds Calibrados (1826 amostras dez/2024):
+
+      - Normal: 0.303-0.323A
+
+      - Crítico: 0.388A
+
+      - Estabilização: |dI/dt| < 0.005 A/s
+
+      - Mudança rápida: |dI/dt| > 0.010 A/s
+    card_mod:
+      style: |
+        ha-card {
+          background: rgba(158, 158, 158, 0.05);
+          font-size: 0.9em;
+        }
