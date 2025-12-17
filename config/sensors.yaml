@@ -4,36 +4,6 @@
 # ║ v3.5 - Derivative corrigido para detectar inrush (~2s)                                                                          ║
 # ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# REST SENSORS - DADOS EXTERNOS
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-# ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-# BANDEIRA TARIFÁRIA ANEEL
-# ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-# Consulta API ANEEL para obter bandeira tarifária atual
-# Atualiza a cada 6 horas (21600s)
-# Valores possíveis: VERDE, AMARELA, VERMELHA P1, VERMELHA P2
-
-- platform: rest
-  name: "Bandeira ANEEL"
-  unique_id: bandeira_aneel
-  resource: "https://dadosabertos.aneel.gov.br/api/3/action/datastore_search?resource_id=0591b8f6-fe54-437b-b72b-1aa2efd46e42&sort=DatCompetencia%20desc&limit=1"
-  timeout: 15
-  scan_interval: 21600
-  value_template: >
-    {% if value_json.result and value_json.result.records %}
-      {{ value_json.result.records[0].NomBandeiraAcionada }}
-    {% else %}
-      Indisponível
-    {% endif %}
-  icon: mdi:flash
-  json_attributes_path: "$.result.records[0]"
-  json_attributes:
-    - DatCompetencia
-    - NomBandeiraAcionada
-    - NomRegiao
-
 # ================================================
 # HISTORY STATS - Runtime Hoje
 # ================================================
