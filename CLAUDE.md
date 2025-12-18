@@ -1,12 +1,12 @@
 # Bomba Água Quente - Contexto IA
 
-⚠️ **TESTE DE LEITURA**: Se leu este arquivo, comece com "📋 Contexto: Bomba Água Quente v3.5"
+⚠️ **TESTE DE LEITURA**: Se leu este arquivo, comece com "📋 Contexto: Bomba Água Quente v3.5.2"
 
 ## Resumo
-Sistema Home Assistant para automação de bomba de circulação de água quente (50W/0.31A). Detecta fluxo via Sonoff Mini, aciona bomba via Tuya TS011F Zigbee. v3.5 usa derivative (dI/dt) para distinguir inrush current de problemas reais.
+Sistema Home Assistant para automação de bomba de circulação de água quente (50W/0.31A). Detecta fluxo via Sonoff Mini, aciona bomba via Tuya TS011F Zigbee. v3.5.2 usa derivative (dI/dt) com filtro anti-inrush e hysteresis para distinguir inrush normal de problemas reais.
 
 ## Estado Atual
-**Versão**: v3.5 | **Data**: 2025-12-12 | **Status**: Em Produção
+**Versão**: v3.5.2 | **Data**: 2024-12-18 | **Status**: Em Produção
 
 ## Quick Reference
 
@@ -23,7 +23,7 @@ Sistema Home Assistant para automação de bomba de circulação de água quente
 | Normal max | 0.323A | P95 |
 | Crítico | 0.388A | max × 1.15 |
 | Estabilização | \|dI/dt\| < 0.005 A/s | Após 2s = estável |
-| Mudança rápida | \|dI/dt\| > 0.010 A/s | Problema agudo |
+| Mudança rápida | \|dI/dt\| > 0.025 A/s | P97 (ignora inrush < 10s) |
 | Crescimento | 7d > 30d × 1.03 | Desgaste emergente |
 
 ### Entidades Hardware
@@ -34,7 +34,7 @@ sensor.bomba_de_circulacao_de_agua_quente_corrente # Corrente (A)
 sensor.bomba_de_circulacao_de_agua_quente_potencia # Potência (W)
 ```
 
-### Arquitetura v3.5 - 3 Camadas
+### Arquitetura v3.5.2 - 3 Camadas
 ```
 CAMADA 1 (RAW):
 ├── sensor.bomba_taxa_mudanca_corrente        # Derivative: dI/dt em A/s
@@ -42,9 +42,9 @@ CAMADA 1 (RAW):
 ├── sensor.bomba_corrente_media_7d            # Statistics 7d
 └── sensor.bomba_corrente_media_30d           # Statistics 30d (baseline)
 
-CAMADA 2 (DETECÇÃO INTELIGENTE):
+CAMADA 2 (DETECÇÃO INTELIGENTE v3.5.2):
 ├── binary_sensor.bomba_corrente_estabilizada # |dI/dt| < 0.005 por 2s
-├── binary_sensor.bomba_mudanca_rapida_corrente # |dI/dt| > 0.010
+├── binary_sensor.bomba_mudanca_rapida_corrente # |dI/dt| > 0.025 + filtro anti-inrush (10s) + hysteresis
 └── binary_sensor.bomba_desgaste_emergente    # 7d > 30d × 1.03
 
 CAMADA 3 (ALERTAS COMBINADOS):
@@ -56,8 +56,8 @@ CAMADA 3 (ALERTAS COMBINADOS):
 | Funcionalidade | Arquivo | Descrição |
 |----------------|---------|-----------|
 | Derivative + Statistics | `config/sensors.yaml` | Sensores raw v3.5 |
-| Binary sensors + Templates | `config/template_sensors.yaml` | Detecção inteligente |
-| Automações v3.5 | `config/automations_bomba.yaml` | Controle + alertas |
+| Binary sensors + Templates | `config/template_sensors.yaml` | Detecção inteligente v3.5.2 |
+| Automações v3.5.2 | `config/automations_bomba.yaml` | Controle + alertas (TTS estratégico) |
 | Scripts | `config/scripts_bomba.yaml` | Teste, reset, relatório |
 | Dashboard Sidebar (Mushroom) | `config/lovelace_bomba_sidebar.yaml` | Dashboard completo para sidebar (RECOMENDADO) |
 | Dashboard Sidebar (Native) | `config/lovelace_bomba_sidebar_native.yaml` | Dashboard sem custom cards |
@@ -66,10 +66,11 @@ CAMADA 3 (ALERTAS COMBINADOS):
 ### Problemas Conhecidos (Quick Fix)
 | Problema | Solução |
 |----------|---------|
-| Inrush dispara alerta | v3.5 resolve: usa `estabilizada` |
+| Falsos positivos inrush | ✅ RESOLVIDO v3.5.2: threshold 0.025 A/s + filtro 10s + hysteresis |
+| TTS excessivo | ✅ RESOLVIDO v3.5.2: apenas emergências (crítico + timeout) |
 | Sonoff stuck em "open" | Filtro 3s delay em automação |
-| Derivative em A/min | CORRIGIDO v3.5: unit_time: s |
-| Cooldown timer bloqueava | CORRIGIDO: timer removido v3.0, condição removida |
+| Derivative em A/min | ✅ CORRIGIDO v3.5: unit_time: s |
+| Cooldown timer bloqueava | ✅ CORRIGIDO v3.5.1: condição removida |
 
 **Detalhes**: [docs/lessons-learned.md](docs/lessons-learned.md)
 
@@ -85,13 +86,22 @@ CAMADA 3 (ALERTAS COMBINADOS):
 - ✅ Statistics sensors (24h/7d/30d)
 - ❌ Derivative com parâmetros errados
 
-### v3.5 (Em Produção)
+### v3.5 (Produção 2024-12-12 a 2024-12-17)
 - ✅ Derivative CORRIGIDO: `unit_time: s`, `time_window: 00:00:05`
 - ✅ 3 novos binary_sensors (estabilizada, mudança_rápida, desgaste_emergente)
 - ✅ Lógica inteligente ignora inrush automaticamente
 - ✅ Mensagens com unidades corretas (A/s)
 - ✅ Dashboard Lovelace v3.5 com secao DEBUG
 - ✅ Bug cooldown timer corrigido (condicao removida)
+- ⚠️ Threshold 0.010 A/s causava falsos positivos (26% das amostras)
+
+### v3.5.2 (Em Produção desde 2024-12-18)
+- ✅ Threshold mudança rápida: 0.010 → 0.025 A/s (P97, elimina falsos positivos)
+- ✅ Filtro anti-inrush: Ignora primeiros 10s após ligação
+- ✅ Hysteresis: delay_on=3s, delay_off=5s
+- ✅ TTS estratégico: Apenas emergências (corrente crítica + timeout)
+- ✅ Logs técnicos: warning → info (monitoramento silencioso)
+- ✅ Attributes extras: time_since_activation, inrush_filter_active
 
 ## Funcionalidades Descartadas
 - ❌ Cycle counting: Removido v3.0 (logs do HA suficientes)
@@ -168,11 +178,12 @@ Dois dashboards disponíveis para adicionar à aba lateral do HA:
 **Guia completo:** [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
 
 ## Próximos Passos
-- [x] Deploy v3.5 em produção (2025-12-12)
-- [x] Dashboard sidebar v3.5.1 (2025-12-14)
-- [ ] Validar comportamento inrush (monitoramento continuo)
-- [ ] Coletar dados 7 dias para confirmar thresholds
-- [ ] Ajustar se necessario
+- [x] Deploy v3.5 em produção (2024-12-12)
+- [x] Dashboard sidebar v3.5.1 (2024-12-14)
+- [x] Análise 1.826 amostras para identificar falsos positivos (2024-12-18)
+- [x] Deploy v3.5.2 com correções (2024-12-18)
+- [ ] Validar ausência de falsos positivos v3.5.2 (monitoramento 7 dias)
+- [ ] Confirmar thresholds finais após período de validação
 
 ## Links
 - **Dashboard Installation Guide**: [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
