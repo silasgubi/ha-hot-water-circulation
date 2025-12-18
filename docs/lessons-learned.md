@@ -54,6 +54,27 @@
 **Arquivos**: `sensors.yaml` linha 41-48
 **Referências**: Documentação HA History Stats
 
+### Threshold Mudança Rápida - Falsos Positivos Persistentes
+**Problema**: Threshold 0.010 A/s disparava em 26% das amostras (inrush normal + desligamento)
+**Causa**: Threshold muito baixo (abaixo do P95=0.0618 A/s), sem filtro anti-inrush, sem hysteresis
+**Solução**:
+- Threshold aumentado para 0.025 A/s (P97)
+- Filtro anti-inrush: ignora primeiros 10s após ligação
+- Hysteresis: delay_on=3s, delay_off=5s
+**Validado**: 2024-12-18 (v3.5.2)
+**Arquivos**: `template_sensors.yaml` - `bomba_mudanca_rapida_corrente`
+**Referências**: Análise 1.826 amostras (docs/analysis/ANALISE_CORRENTE_20241218.md)
+
+### TTS Estratégico vs Universal
+**Problema**: TTS em alertas técnicos (mudança rápida, desgaste emergente) causava poluição sonora
+**Causa**: Nem todo alerta requer ação imediata - monitores técnicos vs emergências
+**Solução**:
+- TTS APENAS em emergências: corrente crítica (>0.388A) + timeout (30min)
+- Alertas técnicos: system_log (info) + logbook + dashboard
+**Validado**: 2024-12-18 (v3.5.2)
+**Arquivos**: `automations_bomba.yaml`
+**Referências**: Análise falsos positivos (docs/MUDANCAS_V352.md)
+
 ## Calibração
 
 ### Thresholds - Dados Reais vs Teóricos

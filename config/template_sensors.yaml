@@ -1,12 +1,12 @@
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# BOMBA ÁGUA QUENTE - SISTEMA DE AUTOMAÇÃO v3.5 DERIVATIVE
+# BOMBA ÁGUA QUENTE - SISTEMA DE AUTOMAÇÃO v3.5.2 DERIVATIVE
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# Arquitetura v3.5: Derivative (dI/dt) distingue inrush de problemas reais
+# Arquitetura v3.5.2: Derivative (dI/dt) com filtro anti-inrush + hysteresis
 # Thresholds calibrados: 1826 amostras dezembro (99.8% cobertura)
 # - Normal: 0.303-0.323A
 # - Crítico: 0.388A (max × 1.15)
 # - Estabilização: |dI/dt| < 0.005 A/s por 2s
-# - Mudança rápida: |dI/dt| > 0.010 A/s
+# - Mudança rápida: |dI/dt| > 0.025 A/s (P97, ignora primeiros 10s)
 
 - sensor:
     # Status da Bomba (baseado em CORRENTE)
@@ -91,18 +91,23 @@
           {% endif %}
 
     # ================================================
-    # CAMADA 2b: Mudança Rápida de Corrente (v3.5)
+    # CAMADA 2b: Mudança Rápida de Corrente (v3.5.2)
     # ================================================
     # Detecta variação brusca (problema agudo, não inrush)
-    # |dI/dt| > 0.010 A/s = mudança rápida
+    # |dI/dt| > 0.025 A/s = mudança rápida (P97)
+    # Filtro anti-inrush: ignora primeiros 10s após ligação
+    # Hysteresis: delay_on=3s, delay_off=5s
     - name: "Bomba Mudança Rápida Corrente"
       unique_id: bomba_mudanca_rapida_corrente
       device_class: problem
+      delay_on: "00:00:03"
+      delay_off: "00:00:05"
       state: >
-        {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0) %}
-        {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
-        {% set threshold_rapida = 0.010 %}
-        {{ pump_on and (taxa | abs) > threshold_rapida }}
+        {% set dI = states('sensor.bomba_taxa_mudanca_corrente') | float(0) | abs %}
+        {% set bomba_on = is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') %}
+        {% set tempo_ligada = (now() - states.switch.bomba_de_circulacao_de_agua_quente.last_changed).total_seconds() %}
+        {% set threshold = 0.025 %}
+        {{ bomba_on and tempo_ligada > 10 and dI > threshold }}
       icon: >
         {% if is_state('binary_sensor.bomba_mudanca_rapida_corrente', 'on') %}
           mdi:lightning-bolt
@@ -112,12 +117,14 @@
       attributes:
         taxa_atual: >
           {{ states('sensor.bomba_taxa_mudanca_corrente') | float(0) | round(4) }}
-        threshold_mudanca_rapida: "0.010 A/s"
+        threshold_mudanca_rapida: "0.025 A/s"
+        time_since_activation: "{{ (now() - states.switch.bomba_de_circulacao_de_agua_quente.last_changed).total_seconds() }}"
+        inrush_filter_active: "{{ (now() - states.switch.bomba_de_circulacao_de_agua_quente.last_changed).total_seconds() <= 10 }}"
         direcao: >
           {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0) %}
-          {% if taxa > 0.010 %}
+          {% if taxa > 0.025 %}
             Subindo ↑
-          {% elif taxa < -0.010 %}
+          {% elif taxa < -0.025 %}
             Descendo ↓
           {% else %}
             Estável →

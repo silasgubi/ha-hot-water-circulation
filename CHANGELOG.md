@@ -5,6 +5,25 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.2] - 2024-12-18
+
+### Corrigido
+- **Threshold mudança rápida**: Aumentado de 0.010 para 0.025 A/s (P97) - elimina falsos positivos de inrush normal
+- **Filtro anti-inrush**: Ignora primeiros 10s após ligação da bomba
+- **Hysteresis**: Adicionado delay_on=3s e delay_off=5s em `binary_sensor.bomba_mudanca_rapida_corrente`
+
+### Modificado
+- **TTS estratégico**: Removido de alertas não-críticos (mudança rápida, desgaste emergente)
+- **TTS mantido apenas em**: Corrente crítica (>0.388A) e timeout (30min)
+- **Log levels**: Alterados de `warning` para `info` nos alertas de monitoramento técnico
+- Adicionados attributes `time_since_activation` e `inrush_filter_active` ao sensor de mudança rápida
+
+### Justificativa
+- Análise de 1.826 amostras revelou que threshold 0.010 A/s capturava 26% das amostras (inrush normal)
+- Novo threshold 0.025 A/s captura apenas eventos reais (P97-P99)
+- TTS reduzido para apenas emergências reais (corrente crítica e timeout)
+- Monitoramento técnico via dashboard e logs (sem poluição sonora)
+
 ## [3.5.1] - 2025-12-12
 
 ### Corrigido

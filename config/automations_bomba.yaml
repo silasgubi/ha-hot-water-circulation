@@ -411,12 +411,12 @@
                 notification_id: pump_progressive_wear_preventive
 
 # ================================================
-# 6. ALERTA MUDANÇA RÁPIDA (Derivative) - v3.5 CORRIGIDO
+# 6. ALERTA MUDANÇA RÁPIDA (Derivative) - v3.5.2
 # ================================================
-# CORREÇÕES: A/min → A/s (derivative usa segundos)
+# v3.5.2: Threshold 0.025 A/s + filtro anti-inrush + TTS removido
 - id: bomba_alerta_mudanca_rapida
   alias: "Bomba - Alerta Mudança Rápida"
-  description: "Corrente subindo muito rápido - problema agudo (Derivative v3.5)"
+  description: "Corrente subindo muito rápido - problema agudo (Derivative v3.5.2)"
   mode: single
 
   trigger:
@@ -424,55 +424,33 @@
       entity_id: binary_sensor.bomba_mudanca_rapida_corrente
       to: "on"
 
-  action:
-    - service: system_log.write
-      data:
-        message: >
-          🚨 MUDANÇA RÁPIDA - Bomba Água Quente |
-          Taxa: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }}A/s |
-          Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A |
-          PROBLEMA AGUDO DETECTADO
-        level: warning
-
+  condition:
     - condition: state
       entity_id: input_boolean.pump_alerts_enabled
       state: "on"
 
-    - data:
-        message: >
-          Atenção! Corrente da bomba subindo rapidamente.
-          Taxa de mudança: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }} amperes por segundo.
-          Possível bloqueio ou travamento do motor.
-        volume_type: default
-      action: script.nabu_speak
-
-    - service: persistent_notification.create
+  action:
+    - service: system_log.write
       data:
-        title: "🚨 Mudança Rápida - Problema Agudo"
         message: >
-          **CORRENTE SUBINDO RAPIDAMENTE**
+          ⚡ MUDANÇA RÁPIDA - Bomba Água Quente |
+          Taxa: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }}A/s |
+          Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A |
+          Threshold: 0.025A/s (após 10s + hysteresis)
+        level: info
 
-          • Taxa: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }}A/s
-          • Corrente: {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') }}A
-          • Limite: >0.010A/s
-
-          **Possíveis causas:**
-          • Bloqueio súbito do rotor
-          • Travamento de rolamento
-          • Obstrução na tubulação
-
-          **AÇÃO:** Desligar e inspecionar AGORA
-
-          Horário: {{ now().strftime('%H:%M:%S') }}
-        notification_id: pump_rapid_change
+    - service: logbook.log
+      data:
+        name: "⚡ MUDANÇA RÁPIDA"
+        message: "Taxa de mudança: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }} A/s"
 
 # ================================================
-# 7. ALERTA DESGASTE EMERGENTE (Statistics) - v3.5 CORRIGIDO
+# 7. ALERTA DESGASTE EMERGENTE (Statistics) - v3.5.2
 # ================================================
-# CORREÇÕES: Não é baseado em tempo (30min), é comparação estatística 7d vs 30d
+# v3.5.2: TTS removido - alerta preventivo, não urgente
 - id: bomba_alerta_desgaste_emergente
   alias: "Bomba - Alerta Desgaste Emergente"
-  description: "Tendência de crescimento detectada via comparação 7d vs 30d (Statistics v3.5)"
+  description: "Tendência de crescimento detectada via comparação 7d vs 30d (Statistics v3.5.2)"
   mode: single
 
   trigger:
@@ -480,38 +458,22 @@
       entity_id: binary_sensor.bomba_desgaste_emergente
       to: "on"
 
-  action:
-    - service: system_log.write
-      data:
-        message: >
-          ⚠️ DESGASTE EMERGENTE - Bomba Água Quente |
-          Tendência crescente detectada (7d vs 30d baseline) |
-          Média 7d: {{ states('sensor.bomba_corrente_media_7d') }}A |
-          Baseline 30d: {{ states('sensor.bomba_corrente_media_30d') }}A |
-          Normal max: {{ states('input_number.pump_current_normal_max') }}A
-        level: warning
-
+  condition:
     - condition: state
       entity_id: input_boolean.pump_alerts_enabled
       state: "on"
 
-    - service: persistent_notification.create
+  action:
+    - service: system_log.write
       data:
-        title: "⚠️ Desgaste Emergente"
         message: >
-          **TENDÊNCIA DE CRESCIMENTO DETECTADA**
+          📈 DESGASTE EMERGENTE - Bomba Água Quente |
+          Média 7d: {{ states('sensor.bomba_corrente_media_7d') }}A |
+          Baseline 30d: {{ states('sensor.bomba_corrente_media_30d') }}A |
+          Crescimento: {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'crescimento_pct') }}
+        level: info
 
-          Comparação estatística 7d vs 30d indica desgaste emergente.
-
-          • Média 7d: {{ states('sensor.bomba_corrente_media_7d') }}A
-          • Baseline 30d: {{ states('sensor.bomba_corrente_media_30d') }}A
-          • Crescimento: {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'crescimento_pct') }}
-          • Margem crítico: {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'margem_critico_pct') }}
-          • Normal máx: {{ states('input_number.pump_current_normal_max') }}A
-
-          **Causa provável:** Desgaste progressivo começando
-
-          **AÇÃO:** Agendar inspeção preventiva nos próximos 7 dias
-
-          Horário: {{ now().strftime('%H:%M:%S') }}
-        notification_id: pump_emerging_wear
+    - service: logbook.log
+      data:
+        name: "📈 DESGASTE EMERGENTE"
+        message: "Média 7d > 30d. Considere inspeção preventiva."
