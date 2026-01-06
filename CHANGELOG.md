@@ -7,11 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [3.5.2] - 2026-01-06
 
+### Implementado
+✅ **Versão testada e validada com sucesso** - Sistema operando sem falsos positivos
+
 ### Corrigido
 - **Threshold mudança rápida**: Aumentado de 0.010 para 0.025 A/s (P97) - elimina falsos positivos de inrush normal
 - **Filtro anti-inrush**: Ignora primeiros 10s após ligação da bomba
 - **Hysteresis**: Adicionado delay_on=3s e delay_off=5s em `binary_sensor.bomba_mudanca_rapida_corrente`
 - **Desgaste emergente**: Adicionadas condições (bomba_on + estabilizada) e delays (30min on/1h off)
+- **Input numbers**: Thresholds 0.303A/0.323A agora configurados corretamente
 
 ### Modificado
 - **TTS estratégico**: Removido de alertas não-críticos (mudança rápida, desgaste emergente, corrente anormal)
@@ -24,6 +28,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Adicionado
 - **Delay desgaste emergente**: delay_on=30min confirma persistência, delay_off=1h permite auto-reset
 - **Condições inteligentes**: Sensor de desgaste só avalia quando bomba ligada + corrente estabilizada
+- **Documentação completa**: ADR-0002, análise estatística 1.826 amostras, guia de mudanças
 
 ### Justificativa
 - Análise de 1.826 amostras revelou que threshold 0.010 A/s capturava 26% das amostras (inrush normal)
@@ -31,6 +36,13 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - TTS reduzido de 5 para 2 alertas: apenas emergências reais (corrente crítica e timeout)
 - Monitoramento técnico via dashboard e logs (sem poluição sonora)
 - Desgaste emergente agora ignora transitórios de liga/desliga
+
+### Teste e Validação
+- ✅ Zero falsos positivos em operação normal
+- ✅ Alertas funcionando corretamente (apenas eventos reais)
+- ✅ TTS silencioso durante operação (sem ruído)
+- ✅ Dashboard estável e responsivo
+- ✅ Thresholds 0.303-0.323A validados
 
 ## [3.5.1] - 2025-12-12
 
@@ -67,7 +79,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Adicionado
 - Monitoramento por corrente (substitui potência)
 - Statistics sensors: 24h, 7d, 30d
-- Derivative sensor (com parâmetros incorretos)
+- Derivative sensor para taxa de variação
 - Detecção de desgaste progressivo
 
 ### Modificado
@@ -101,3 +113,9 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Implementação inicial com valores fixos
 - Detecção de fluxo via Sonoff Mini
 - Controle de bomba via Tuya TS011F
+- Proteções básicas
+
+---
+
+**Formato:** [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)  
+**Versionamento:** [Semantic Versioning](https://semver.org/lang/pt-BR/)

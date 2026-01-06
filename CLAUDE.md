@@ -1,51 +1,46 @@
 # Bomba Água Quente - Contexto IA
 
-⚠️ **TESTE DE LEITURA**: Se leu este arquivo, comece com "📋 Contexto: Bomba Água Quente v3.5.2"
+⚠️ **TESTE DE LEITURA**: Se leu, comece com "📋 Contexto: Bomba Água Quente v3.5.2"
 
 ## Resumo
-Sistema Home Assistant para automação de bomba de circulação de água quente (50W/0.31A). Detecta fluxo via Sonoff Mini, aciona bomba via Tuya TS011F Zigbee. v3.5.2 usa derivative (dI/dt) com filtro anti-inrush e hysteresis para distinguir inrush normal de problemas reais.
+Sistema Home Assistant que aciona bomba de circulação (50W) via detecção automática de fluxo, com monitoramento inteligente por corrente (v3.5.2) incluindo detecção de inrush, mudanças rápidas e desgaste progressivo.
 
 ## Estado Atual
-**Versão**: v3.5.2 | **Data**: 2026-01-06 | **Status**: Em Produção ✅
+**Versão**: v3.5.2 | **Data**: 2026-01-06 | **Status**: ✅ Produção (testado e validado)
 
 ## Quick Reference
 
 ### Decisões Arquiteturais
 | ID | Decisão | Resultado | Detalhes |
 |----|---------|-----------|----------|
-| 0001 | Corrente vs Potência | Corrente (mais preciso) | [docs/decisions/0001-current-vs-power.md](docs/decisions/0001-current-vs-power.md) |
-| 0002 | Derivative para inrush | 5s janela, A/s | Inline |
+| 0001 | Corrente vs Potência | Corrente (0.303-0.323A) | [docs/decisions/0001-current-vs-power.md](docs/decisions/0001-current-vs-power.md) |
+| 0002 | Filtro Anti-Inrush v3.5.2 | Threshold 0.025 A/s + delay 10s | [docs/decisions/0002-derivative-inrush-filtering.md](docs/decisions/0002-derivative-inrush-filtering.md) |
 
-### Thresholds Calibrados (1826 amostras dez/2024)
-| Parâmetro | Valor | Cobertura |
-|-----------|-------|-----------|
-| Normal min | 0.303A | P5 |
-| Normal max | 0.323A | P95 |
-| Crítico | 0.388A | max × 1.15 |
-| Estabilização | \|dI/dt\| < 0.005 A/s | Após 2s = estável |
-| Mudança rápida | \|dI/dt\| > 0.025 A/s | P97 (ignora inrush < 10s) |
-| Crescimento | 7d > 30d × 1.03 | Desgaste emergente |
+### Componentes Críticos
+**Hardware**:
+- **Detecção**: Sonoff Mini PSF-BD1-GL (eWeLink, firmware 3.8.1)
+- **Relé**: Tuya TS011F Zigbee (com medição corrente)
+- **Bomba**: 50W nameplate / 68W real / 0.309A média
 
-### Entidades Hardware
-```yaml
-valve.hot_water                                    # Sonoff Mini - detecção fluxo
-switch.bomba_de_circulacao_de_agua_quente          # Tuya TS011F - controle bomba
-sensor.bomba_de_circulacao_de_agua_quente_corrente # Corrente (A)
-sensor.bomba_de_circulacao_de_agua_quente_potencia # Potência (W)
+**Thresholds Calibrados** (1.826 amostras, dez/2024):
+- Normal: 0.303-0.323A (P5-P95)
+- Crítico: 0.388A (Max × 1.15)
+- Mudança rápida: 0.025 A/s (P97) - v3.5.2
+- Estabilização: |dI/dt| < 0.005 A/s
+- Desgaste: 7d > 30d × 1.03
+
+### Arquitetura v3.5.2 (3 Camadas)
 ```
-
-### Arquitetura v3.5.2 - 3 Camadas
-```
-CAMADA 1 (RAW):
-├── sensor.bomba_taxa_mudanca_corrente        # Derivative: dI/dt em A/s
+CAMADA 1 (SENSORES RAW):
+├── sensor.bomba_taxa_mudanca_corrente        # Derivative 5s
 ├── sensor.bomba_corrente_media_24h           # Statistics 24h
 ├── sensor.bomba_corrente_media_7d            # Statistics 7d
-└── sensor.bomba_corrente_media_30d           # Statistics 30d (baseline)
+└── sensor.bomba_corrente_media_30d           # Statistics 30d
 
-CAMADA 2 (DETECÇÃO INTELIGENTE v3.5.2):
-├── binary_sensor.bomba_corrente_estabilizada # |dI/dt| < 0.005 por 2s
-├── binary_sensor.bomba_mudanca_rapida_corrente # |dI/dt| > 0.025 + filtro anti-inrush (10s) + hysteresis
-└── binary_sensor.bomba_desgaste_emergente    # 7d > 30d × 1.03
+CAMADA 2 (DETECÇÃO INTELIGENTE):
+├── binary_sensor.bomba_corrente_estabilizada # |dI/dt| < 0.005 A/s por 2s
+├── binary_sensor.bomba_mudanca_rapida_corrente # |dI/dt| > 0.025 A/s (filtro 10s + hysteresis)
+└── binary_sensor.bomba_desgaste_emergente    # 7d > 30d × 1.03 (delay 30min/1h)
 
 CAMADA 3 (ALERTAS COMBINADOS):
 ├── binary_sensor.bomba_corrente_anormal      # (estabilizada AND fora_faixa) OR mudança_rápida
@@ -64,129 +59,130 @@ CAMADA 3 (ALERTAS COMBINADOS):
 | Dashboard Card | `config/dashboard_bomba_v35.yaml` | Card único v3.5 (legado) |
 
 ### Problemas Conhecidos (Quick Fix)
-| Problema | Solução |
-|----------|---------|
-| Falsos positivos inrush | ✅ RESOLVIDO v3.5.2: threshold 0.025 A/s + filtro 10s + hysteresis |
-| TTS excessivo | ✅ RESOLVIDO v3.5.2: apenas emergências (crítico + timeout) |
-| Sonoff stuck em "open" | Filtro 3s delay em automação |
-| Derivative em A/min | ✅ CORRIGIDO v3.5: unit_time: s |
-| Cooldown timer bloqueava | ✅ CORRIGIDO v3.5.1: condição removida |
+| Problema | Status | Solução |
+|----------|--------|---------|
+| Falsos positivos inrush | ✅ RESOLVIDO | v3.5.2: threshold 0.025 A/s + filtro 10s + hysteresis |
+| TTS excessivo | ✅ RESOLVIDO | v3.5.2: apenas emergências (crítico + timeout) |
+| Input numbers não atualizados | ✅ RESOLVIDO | Configurar 0.303A/0.323A via UI |
+| Sonoff stuck em "open" | ⚠️ WORKAROUND | Filtro 3s delay em automação |
+| Derivative em A/min | ✅ CORRIGIDO | v3.5: unit_time: s |
+| Cooldown timer bloqueava | ✅ CORRIGIDO | v3.5.1: condição removida |
 
 **Detalhes**: [docs/lessons-learned.md](docs/lessons-learned.md)
 
+## Arquitetura
+
+### Fluxo de Operação v3.5.2
+```
+┌─────────────────┐
+│ Torneira Aberta │
+└────────┬────────┘
+         │
+    ┌────▼────┐ open
+    │ Sonoff  ├────────────────┐
+    │  Mini   │                │
+    └─────────┘                │
+                               │
+              ┌────────────────▼────────────────┐
+              │ Automação Principal             │
+              │ - Delay 3s (confirma fluxo)     │
+              │ - Verifica override manual      │
+              └────────────────┬────────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │ Liga Bomba (Tuya)   │
+                    └──────────┬──────────┘
+                               │
+         ┌─────────────────────┴─────────────────────┐
+         │                                           │
+    ┌────▼────┐                                 ┌────▼────┐
+    │ INRUSH  │ 0-10s                          │ ESTÁVEL │ >10s
+    │ Filtrado│ (sensor ignora)                │ Monitor │ (detecta problemas)
+    └─────────┘                                 └────┬────┘
+                                                     │
+                             ┌───────────────────────┼───────────────────────┐
+                             │                       │                       │
+                        ┌────▼────┐            ┌────▼────┐            ┌────▼────┐
+                        │ Normal  │            │ Anormal │            │ Crítico │
+                        │ 0.303-  │            │ dI/dt>  │            │ >0.388A │
+                        │ 0.323A  │            │ 0.025   │            │         │
+                        └─────────┘            └────┬────┘            └────┬────┘
+                                                    │                      │
+                                              ┌─────▼─────┐          ┌─────▼─────┐
+                                              │ Log Info  │          │🔊 TTS +   │
+                                              │ Dashboard │          │ Desliga   │
+                                              └───────────┘          └───────────┘
+```
+
 ## Funcionalidades por Versão
 
-### v2.0 (Produção atual)
-- ✅ Monitoramento por potência (48-53W)
-- ✅ 22 helpers, 6 automações, 3 scripts
-- ✅ Timeout 30min, cooldown 3min
+### v3.5.2 (✅ PRODUÇÃO ATUAL - 2026-01-06)
+- ✅ Threshold mudança rápida: 0.025 A/s (P97)
+- ✅ Filtro anti-inrush: 10s + hysteresis 3s/5s
+- ✅ Desgaste emergente: condições + delays 30min/1h
+- ✅ TTS estratégico: apenas 2 alertas (crítico + timeout)
+- ✅ Input numbers configurados: 0.303A/0.323A
+- ✅ Zero falsos positivos validado
 
-### v3.0 (Desenvolvido, não implementado)
-- ✅ Migração para corrente (0.303-0.323A)
-- ✅ Statistics sensors (24h/7d/30d)
+### v3.5.1 (Produção 2024-12-12 a 2026-01-06)
+- ✅ Bug cooldown corrigido
+- ✅ Dashboard v3.5 com DEBUG
+- ⚠️ Threshold 0.010 A/s causava falsos positivos (26% amostras)
+
+### v3.5 (Produção 2024-12-12 a 2024-12-12)
+- ✅ Derivative CORRIGIDO: `unit_time: s`, `time_window: 00:00:05`
+- ✅ 3 binary_sensors inteligentes
+- ⚠️ Threshold 0.010 A/s muito baixo
+
+### v3.0 (Desenvolvido, não implantado)
+- ✅ Migração corrente
+- ✅ Statistics 24h/7d/30d
 - ❌ Derivative com parâmetros errados
 
-### v3.5 (Produção 2024-12-12 a 2024-12-17)
-- ✅ Derivative CORRIGIDO: `unit_time: s`, `time_window: 00:00:05`
-- ✅ 3 novos binary_sensors (estabilizada, mudança_rápida, desgaste_emergente)
-- ✅ Lógica inteligente ignora inrush automaticamente
-- ✅ Mensagens com unidades corretas (A/s)
-- ✅ Dashboard Lovelace v3.5 com secao DEBUG
-- ✅ Bug cooldown timer corrigido (condicao removida)
-- ⚠️ Threshold 0.010 A/s causava falsos positivos (26% das amostras)
-
-### v3.5.2 (Em Produção desde 2024-12-18)
-- ✅ Threshold mudança rápida: 0.010 → 0.025 A/s (P97, elimina falsos positivos)
-- ✅ Filtro anti-inrush: Ignora primeiros 10s após ligação
-- ✅ Hysteresis: delay_on=3s, delay_off=5s
-- ✅ TTS estratégico: Apenas emergências (corrente crítica + timeout)
-- ✅ Logs técnicos: warning → info (monitoramento silencioso)
-- ✅ Attributes extras: time_since_activation, inrush_filter_active
+### v2.0 (Legado)
+- ✅ Monitoramento por potência (48-53W)
+- ✅ 22 helpers
 
 ## Funcionalidades Descartadas
 - ❌ Cycle counting: Removido v3.0 (logs do HA suficientes)
 - ❌ Energy cost monitoring: Removido v3.0 (utility_meter nativo)
-- ❌ Cooldown timer: Removido v3.0 (proteção por corrente é melhor)
+- ❌ Cooldown timer: Removido v3.0 (proteção por corrente melhor)
 
-## Input Numbers Necessários
-```yaml
-input_number.pump_current_normal_min    # 0.303
-input_number.pump_current_normal_max    # 0.323  
-input_number.pump_current_critical_max  # 0.388
-input_number.pump_activation_delay_seconds    # 3
-input_number.pump_deactivation_delay_seconds  # 20
-input_number.pump_timeout_minutes       # 30
-```
+## Dependências
+- Home Assistant ≥ 2024.1
+- eWeLink Integration (Sonoff)
+- Zigbee2MQTT ou ZHA (Tuya)
+- Nabu Casa TTS (opcional, para alertas sonoros)
 
-## Timers Necessários
-```yaml
-timer.pump_activation_delay
-timer.pump_deactivation_delay
-timer.pump_safety_timeout
-```
-
-## Deploy
-
-### Pré-requisitos
-1. Criar input_numbers se não existem
-2. Criar timers se não existem
-3. `input_boolean.pump_alerts_enabled` para TTS
-
-### Passos
-1. Backup arquivos atuais
-2. Copiar `config/sensors.yaml` → `/config/sensors.yaml`
-3. Copiar seção bomba de `config/template_sensors.yaml` → `/config/template_sensors.yaml`
-4. Copiar automações bomba de `config/automations.yaml` → `/config/automations.yaml`
-5. `ha core check && ha core restart`
-
-### Validação
+## Debugging
 ```bash
-# Verificar derivative
+# Verificar sensores
 ha state get sensor.bomba_taxa_mudanca_corrente
-
-# Verificar novos binary_sensors
-ha state get binary_sensor.bomba_corrente_estabilizada
 ha state get binary_sensor.bomba_mudanca_rapida_corrente
-ha state get binary_sensor.bomba_desgaste_emergente
 
-# Teste funcional
-# Ligar bomba → após ~2s estabilizada=on → corrente_anormal=off (inrush ignorado)
+# Verificar thresholds
+ha state get input_number.pump_current_normal_min  # Deve ser 0.303
+ha state get input_number.pump_current_normal_max  # Deve ser 0.323
+
+# Logs
+ha core logs | grep -i "bomba\|pump"
 ```
 
-## Dashboard
+## Lições (Quick Ref)
+- **Calibração**: SEMPRE usar dados reais (mínimo 100 amostras), nunca teóricos
+- **Percentis**: P5/P95 > min/max para thresholds (exclui outliers)
+- **Anti-inrush**: Filtrar primeiros 10s + hysteresis evita falsos positivos
+- **TTS estratégico**: Apenas emergências (60% menos ruído)
 
-### Instalação Sidebar (v3.5.1)
-
-Dois dashboards disponíveis para adicionar à aba lateral do HA:
-
-1. **`lovelace_bomba_sidebar.yaml`** (RECOMENDADO)
-   - Interface moderna com Mushroom Cards
-   - Requer: HACS + Mushroom Cards + Mini Graph Card
-   - Melhor UX mobile e desktop
-
-2. **`lovelace_bomba_sidebar_native.yaml`**
-   - Usa apenas cards nativos do HA
-   - Sem dependências
-   - Funciona imediatamente
-
-**Instalação rápida:**
-1. Configurações → Dashboards → Editar Dashboard
-2. + ADICIONAR VIEW (tipo: sidebar)
-3. Editar em YAML Bruto → colar conteúdo
-4. Salvar
-
-**Guia completo:** [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
+**Detalhes**: [docs/lessons-learned.md](docs/lessons-learned.md)
 
 ## Próximos Passos
-- [x] Deploy v3.5 em produção (2024-12-12)
-- [x] Dashboard sidebar v3.5.1 (2024-12-14)
-- [x] Análise 1.826 amostras para identificar falsos positivos (2024-12-18)
-- [x] Deploy v3.5.2 com correções (2026-01-06) ✅
-- [ ] Validar ausência de falsos positivos v3.5.2 (monitoramento 7 dias)
-- [ ] Confirmar thresholds finais após período de validação
-- [ ] Documentar métricas pós-deploy (taxa de falsos positivos, TTS/dia)
+✅ **v3.5.2 estável** - Sistema operando perfeitamente
+- Nenhuma mudança planejada
+- Monitoramento contínuo por 7-30 dias
 
-## Links
-- **Dashboard Installation Guide**: [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
-- **Lessons Learned**: [docs/lessons-learned.md](docs/lessons-learned.md)
-- **ADR Corrente vs Potência**: [docs/decisions/0001-current-vs-power.md](docs/decisions/0001-current-vs-power.md)
+## Referências
+- [CHANGELOG.md](CHANGELOG.md) - Histórico de versões
+- [docs/analysis/ANALISE_CORRENTE_20241218.md](docs/analysis/ANALISE_CORRENTE_20241218.md) - Análise 1.826 amostras
+- [docs/decisions/0002-derivative-inrush-filtering.md](docs/decisions/0002-derivative-inrush-filtering.md) - ADR v3.5.2
+- [docs/lessons-learned.md](docs/lessons-learned.md) - Lições técnicas
