@@ -5,24 +5,32 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
-## [3.5.2] - 2024-12-18
+## [3.5.2] - 2026-01-06
 
 ### Corrigido
 - **Threshold mudança rápida**: Aumentado de 0.010 para 0.025 A/s (P97) - elimina falsos positivos de inrush normal
 - **Filtro anti-inrush**: Ignora primeiros 10s após ligação da bomba
 - **Hysteresis**: Adicionado delay_on=3s e delay_off=5s em `binary_sensor.bomba_mudanca_rapida_corrente`
+- **Desgaste emergente**: Adicionadas condições (bomba_on + estabilizada) e delays (30min on/1h off)
 
 ### Modificado
-- **TTS estratégico**: Removido de alertas não-críticos (mudança rápida, desgaste emergente)
-- **TTS mantido apenas em**: Corrente crítica (>0.388A) e timeout (30min)
+- **TTS estratégico**: Removido de alertas não-críticos (mudança rápida, desgaste emergente, corrente anormal)
+- **TTS mantido apenas em**: Corrente crítica (>0.388A) e timeout (30min) - redução de 60% no ruído
 - **Log levels**: Alterados de `warning` para `info` nos alertas de monitoramento técnico
-- Adicionados attributes `time_since_activation` e `inrush_filter_active` ao sensor de mudança rápida
+- Adicionados attributes extras aos sensores:
+  - `bomba_mudanca_rapida_corrente`: `time_since_activation`, `inrush_filter_active`
+  - `bomba_desgaste_emergente`: `pump_running`, `current_stable`, `difference_percent`
+
+### Adicionado
+- **Delay desgaste emergente**: delay_on=30min confirma persistência, delay_off=1h permite auto-reset
+- **Condições inteligentes**: Sensor de desgaste só avalia quando bomba ligada + corrente estabilizada
 
 ### Justificativa
 - Análise de 1.826 amostras revelou que threshold 0.010 A/s capturava 26% das amostras (inrush normal)
 - Novo threshold 0.025 A/s captura apenas eventos reais (P97-P99)
-- TTS reduzido para apenas emergências reais (corrente crítica e timeout)
+- TTS reduzido de 5 para 2 alertas: apenas emergências reais (corrente crítica e timeout)
 - Monitoramento técnico via dashboard e logs (sem poluição sonora)
+- Desgaste emergente agora ignora transitórios de liga/desliga
 
 ## [3.5.1] - 2025-12-12
 
