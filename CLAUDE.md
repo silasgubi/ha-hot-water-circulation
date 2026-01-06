@@ -6,7 +6,7 @@
 Sistema Home Assistant para automação de bomba de circulação de água quente (50W/0.31A). Detecta fluxo via Sonoff Mini, aciona bomba via Tuya TS011F Zigbee. v3.5.2 usa derivative (dI/dt) com filtro anti-inrush e hysteresis para distinguir inrush normal de problemas reais.
 
 ## Estado Atual
-**Versão**: v3.5.2 | **Data**: 2024-12-18 | **Status**: Em Produção
+**Versão**: v3.5.2 | **Data**: 2026-01-06 | **Status**: Em Produção ✅
 
 ## Quick Reference
 
@@ -181,9 +181,10 @@ Dois dashboards disponíveis para adicionar à aba lateral do HA:
 - [x] Deploy v3.5 em produção (2024-12-12)
 - [x] Dashboard sidebar v3.5.1 (2024-12-14)
 - [x] Análise 1.826 amostras para identificar falsos positivos (2024-12-18)
-- [x] Deploy v3.5.2 com correções (2024-12-18)
+- [x] Deploy v3.5.2 com correções (2026-01-06) ✅
 - [ ] Validar ausência de falsos positivos v3.5.2 (monitoramento 7 dias)
 - [ ] Confirmar thresholds finais após período de validação
+- [ ] Documentar métricas pós-deploy (taxa de falsos positivos, TTS/dia)
 
 ## Links
 - **Dashboard Installation Guide**: [docs/dashboard-installation-guide.md](docs/dashboard-installation-guide.md)
