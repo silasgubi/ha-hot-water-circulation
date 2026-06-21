@@ -1,65 +1,67 @@
-# Estrutura de Código - Bomba Água Quente v3.5
+# Config Files Reference — Hot Water Circulation v3.5.2
 
-## Arquivos
+## Files
 
-| Arquivo | Linhas | Descrição |
-|---------|--------|-----------|
-| `sensors.yaml` | ~130 | Derivative, Statistics, History Stats |
-| `template_sensors.yaml` | ~750 | Template sensors (robôs, rega, UPS, **bomba**) |
-| `automations_bomba.yaml` | ~520 | Automações só da bomba v3.5 |
-| `scripts_bomba.yaml` | ~200 | Scripts da bomba (teste, reset, relatório) |
+| File | Description |
+|------|-------------|
+| `sensors.yaml` | Derivative + Statistics raw sensors (Layer 1) |
+| `template_sensors.yaml` | Binary sensors — detection logic (Layers 2 & 3) |
+| `automations_bomba.yaml` | Automations — control and alerts |
+| `scripts_bomba.yaml` | Scripts: system test, emergency reset, detailed report |
+| `lovelace_bomba_sidebar.yaml` | Dashboard with Mushroom Cards (recommended) |
+| `lovelace_bomba_sidebar_native.yaml` | Dashboard with native HA cards (no dependencies) |
 
-## Onde Está Cada Coisa
+## Where to Find Things
 
-### Sensores Raw (Camada 1)
-- **Derivative**: `sensors.yaml` linhas 50-63
-- **Statistics 24h/7d/30d**: `sensors.yaml` linhas 69-111
-- **History Stats runtime**: `sensors.yaml` linhas 41-48
+### Layer 1 — Raw Sensors (`sensors.yaml`)
+- Derivative sensor: lines 50–63
+- Statistics 24h/7d/30d: lines 69–111
+- History stats runtime: lines 41–48
 
-### Detecção Inteligente (Camada 2)
-- **bomba_corrente_estabilizada**: `template_sensors.yaml` seção bomba
-- **bomba_mudanca_rapida_corrente**: `template_sensors.yaml` seção bomba
-- **bomba_desgaste_emergente**: `template_sensors.yaml` seção bomba
+### Layer 2 — Smart Detection (`template_sensors.yaml`)
+- `bomba_corrente_estabilizada` — stabilization guard
+- `bomba_mudanca_rapida_corrente` — rapid change detection
+- `bomba_desgaste_emergente` — wear trend detection
 
-### Alertas Combinados (Camada 3)
-- **bomba_corrente_anormal**: `template_sensors.yaml` seção bomba
-- **bomba_corrente_critica**: `template_sensors.yaml` seção bomba
+### Layer 3 — Combined Alerts (`template_sensors.yaml`)
+- `bomba_corrente_anormal` — combined abnormal alert
+- `bomba_corrente_critica` — emergency (>0.388A)
 
-### Automações
-- **Controle principal**: `automations_bomba.yaml` linha 7
-- **Timeout segurança**: `automations_bomba.yaml` linha 140
-- **Controle manual**: `automations_bomba.yaml` linha 200
-- **Desligamento emergência**: `automations_bomba.yaml` linha 260
-- **Desgaste progressivo**: `automations_bomba.yaml` linha 320
-- **Alerta mudança rápida (v3.5)**: `automations_bomba.yaml` linha 420
-- **Alerta desgaste emergente (v3.5)**: `automations_bomba.yaml` linha 475
+### Automations (`automations_bomba.yaml`)
+- Main control: line 7
+- Safety timeout: line 140
+- Manual override: line 200
+- Emergency shutoff: line 260
+- Progressive wear: line 320
+- Rapid change alert: line 420
+- Wear trend alert: line 475
 
-### Scripts
-- **pump_system_test**: `scripts_bomba.yaml` linha 1
-- **pump_emergency_reset**: `scripts_bomba.yaml` linha 75
-- **pump_detailed_report**: `scripts_bomba.yaml` linha 130
+### Scripts (`scripts_bomba.yaml`)
+- `pump_system_test`: line 1
+- `pump_emergency_reset`: line 75
+- `pump_detailed_report`: line 130
 
-## Como Usar
+## Deployment
 
-### Deploy Completo (novo sistema)
-1. Copiar `sensors.yaml` → `/config/sensors.yaml`
-2. Copiar `template_sensors.yaml` → `/config/template_sensors.yaml`
-3. Adicionar conteúdo de `automations_bomba.yaml` ao seu `/config/automations.yaml`
-4. Adicionar conteúdo de `scripts_bomba.yaml` ao seu `/config/scripts.yaml`
+Copy all files to your Home Assistant `/config/` directory:
 
-### Atualização v3.0 → v3.5
-1. Substituir seção bomba em `template_sensors.yaml` (linhas 470-603)
-2. Substituir automações `bomba_alerta_mudanca_rapida` e `bomba_alerta_desgaste_emergente`
-3. Atualizar `sensors.yaml` seção derivative
+```bash
+cp sensors.yaml /config/sensors.yaml
+cp template_sensors.yaml /config/template_sensors.yaml
+cp automations_bomba.yaml /config/automations.yaml
+cp scripts_bomba.yaml /config/scripts.yaml
+```
 
-## Validação
+Then restart HA and install a dashboard (see `README_DASHBOARD.md`).
+
+## Validation
+
+In Developer Tools → Template:
 
 ```yaml
-# Developer Tools → Template
-TESTE v3.5:
-- Derivative: {{ states('sensor.bomba_taxa_mudanca_corrente') }} A/s
-- Estabilizada: {{ states('binary_sensor.bomba_corrente_estabilizada') }}
-- Mudança Rápida: {{ states('binary_sensor.bomba_mudanca_rapida_corrente') }}
-- Desgaste Emergente: {{ states('binary_sensor.bomba_desgaste_emergente') }}
-- Corrente Anormal: {{ states('binary_sensor.bomba_corrente_anormal') }}
+Derivative:       {{ states('sensor.bomba_taxa_mudanca_corrente') }} A/s
+Stabilized:       {{ states('binary_sensor.bomba_corrente_estabilizada') }}
+Rapid change:     {{ states('binary_sensor.bomba_mudanca_rapida_corrente') }}
+Wear trend:       {{ states('binary_sensor.bomba_desgaste_emergente') }}
+Abnormal current: {{ states('binary_sensor.bomba_corrente_anormal') }}
 ```

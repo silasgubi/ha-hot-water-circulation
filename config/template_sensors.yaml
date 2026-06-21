@@ -1,15 +1,15 @@
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# BOMBA ÁGUA QUENTE - SISTEMA DE AUTOMAÇÃO v3.5.2 DERIVATIVE
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# Arquitetura v3.5.2: Derivative (dI/dt) com filtro anti-inrush + hysteresis
-# Thresholds calibrados: 1826 amostras dezembro (99.8% cobertura)
-# - Normal: 0.303-0.323A
-# - Crítico: 0.388A (max × 1.15)
-# - Estabilização: |dI/dt| < 0.005 A/s por 2s
-# - Mudança rápida: |dI/dt| > 0.025 A/s (P97, ignora primeiros 10s)
+# ════════════════════════════════════════════════════════════════════════════════
+# HOT WATER CIRCULATION PUMP — AUTOMATION SYSTEM v3.5.2 DERIVATIVE
+# ════════════════════════════════════════════════════════════════════════════════
+# Architecture v3.5.2: Derivative (dI/dt) with anti-inrush filter + hysteresis
+# Calibrated thresholds from 1826 samples (December 2024, 99.8% coverage)
+# - Normal range:      0.303–0.323A
+# - Critical:          0.388A (max × 1.15)
+# - Stabilization:     |dI/dt| < 0.005 A/s for 2s
+# - Rapid change:      |dI/dt| > 0.025 A/s (P97, ignores first 10s after startup)
 
 - sensor:
-    # Status da Bomba (baseado em CORRENTE)
+    # Pump status derived from CURRENT (not switch state)
     - name: "Bomba Status"
       unique_id: bomba_status
       state: >
@@ -33,7 +33,7 @@
           mdi:pump-off
         {% endif %}
 
-    # Status Simplificado do Sistema
+    # Simplified system status for dashboard header
     - name: "Bomba Sistema Status"
       unique_id: bomba_sistema_status
       state: >
@@ -52,19 +52,18 @@
         {% endif %}
       icon: mdi:information-outline
 
-    # Runtime Hoje - REMOVIDO (usar history_stats ao invés de template complexo)
-    # Ver sensors.yaml para sensor.bomba_runtime_hoje via history_stats
+    # Daily runtime is handled by history_stats in sensors.yaml (not a template sensor)
 
 - binary_sensor:
     # ================================================
-    # CAMADA 2a: Corrente Estabilizada (v3.5)
+    # LAYER 2a: Current Stabilized (v3.5)
     # ================================================
-    # Detecta quando corrente está estável (inrush passou)
-    # |dI/dt| < 0.005 A/s por 2 segundos = estabilizado
+    # True when current rate of change is small enough to indicate inrush has passed.
+    # |dI/dt| < 0.005 A/s for 2 consecutive seconds = stabilized
     - name: "Bomba Corrente Estabilizada"
       unique_id: bomba_corrente_estabilizada
       device_class: running
-      delay_on: "00:00:02"   # 2s consecutivos estável = confirmado
+      delay_on: "00:00:02"   # must hold stable for 2s before confirming
       state: >
         {% set taxa = states('sensor.bomba_taxa_mudanca_corrente') | float(0) %}
         {% set pump_on = states('switch.bomba_de_circulacao_de_agua_quente') == 'on' %}
@@ -91,12 +90,12 @@
           {% endif %}
 
     # ================================================
-    # CAMADA 2b: Mudança Rápida de Corrente (v3.5.2)
+    # LAYER 2b: Rapid Current Change (v3.5.2)
     # ================================================
-    # Detecta variação brusca (problema agudo, não inrush)
-    # |dI/dt| > 0.025 A/s = mudança rápida (P97)
-    # Filtro anti-inrush: ignora primeiros 10s após ligação
-    # Hysteresis: delay_on=3s, delay_off=5s
+    # Detects sharp current spikes that indicate acute problems (not normal inrush).
+    # |dI/dt| > 0.025 A/s = rapid change (P97 threshold)
+    # Anti-inrush filter: ignores first 10s after pump activation
+    # Hysteresis: delay_on=3s (confirm), delay_off=5s (stabilize before clearing)
     - name: "Bomba Mudança Rápida Corrente"
       unique_id: bomba_mudanca_rapida_corrente
       device_class: problem
@@ -131,10 +130,10 @@
           {% endif %}
 
     # ================================================
-    # CAMADA 2c: Desgaste Emergente (v3.5)
+    # LAYER 2c: Emerging Wear (v3.5)
     # ================================================
-    # Detecta tendência de crescimento (7d vs 30d)
-    # média_7d > média_30d × 1.03 OU média_7d > max × 0.95
+    # Detects progressive wear trend: 7d average rising compared to 30d baseline.
+    # Triggers when: 7d avg > 30d avg × 1.03 OR 7d avg > normal_max × 0.95
     - name: "Bomba Desgaste Emergente"
       unique_id: bomba_desgaste_emergente
       device_class: problem
@@ -144,7 +143,7 @@
         {% set max_corrente = states('input_number.pump_current_normal_max') | float(0.323) %}
         {% set crescimento_threshold = 1.03 %}
         {% set margem_critico = 0.95 %}
-        
+
         {% if media_30d > 0 %}
           {{ media_7d > (media_30d * crescimento_threshold) or media_7d > (max_corrente * margem_critico) }}
         {% else %}
@@ -179,7 +178,7 @@
           {% endif %}
 
     # ================================================
-    # Bomba Funcionando (baseado em CORRENTE)
+    # Pump Running (derived from CURRENT, not switch)
     # ================================================
     - name: "Bomba Funcionando"
       unique_id: bomba_funcionando
@@ -198,7 +197,7 @@
         {% endif %}
 
     # ================================================
-    # Fluxo Água Quente
+    # Hot Water Flow (Sonoff Mini valve state)
     # ================================================
     - name: "Fluxo Água Quente"
       unique_id: fluxo_agua_quente
@@ -212,10 +211,10 @@
         {% endif %}
 
     # ================================================
-    # CAMADA 3a: Corrente Anormal (v3.5 - usa estabilização)
+    # LAYER 3a: Abnormal Current (v3.5 — uses stabilization guard)
     # ================================================
-    # Só dispara se: estabilizado E (fora_faixa OU mudança_rápida)
-    # Isso ignora inrush automaticamente!
+    # Only fires when: stabilized AND (out_of_range OR rapid_change)
+    # This automatically ignores inrush — no need for a separate delay.
     - name: "Bomba Corrente Anormal"
       unique_id: bomba_corrente_anormal
       device_class: problem
@@ -227,7 +226,7 @@
         {% set estabilizada = is_state('binary_sensor.bomba_corrente_estabilizada', 'on') %}
         {% set mudanca_rapida = is_state('binary_sensor.bomba_mudanca_rapida_corrente', 'on') %}
         {% set fora_faixa = corrente < min_corrente or corrente > max_corrente %}
-        
+
         {{ pump_on and (estabilizada and fora_faixa) or mudanca_rapida }}
       icon: >
         {% if is_state('binary_sensor.bomba_corrente_anormal', 'on') %}
@@ -260,9 +259,10 @@
           {% endif %}
 
     # ================================================
-    # CAMADA 3b: Corrente CRÍTICA (SEM delay - emergência)
+    # LAYER 3b: CRITICAL Current (no delay — emergency)
     # ================================================
-    # Desliga bomba imediatamente se corrente > crítico
+    # Triggers immediate pump shutoff when current exceeds the critical threshold.
+    # No delay_on intentional: emergencies must react instantly.
     - name: "Bomba Corrente Crítica"
       unique_id: bomba_corrente_critica
       device_class: safety

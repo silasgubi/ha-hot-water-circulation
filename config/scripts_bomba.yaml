@@ -1,6 +1,6 @@
 pump_system_test:
   alias: "Bomba - Teste Sistema Completo"
-  description: "Executa teste completo do sistema (liga 5s, verifica corrente e desliga)"
+  description: "Runs a complete system test: turns pump on for 5s, checks current, then turns it off"
   mode: single
   icon: mdi:test-tube
   sequence:
@@ -73,7 +73,7 @@ pump_system_test:
 
 pump_emergency_reset:
   alias: "Bomba - Reset Emergência"
-  description: "Desliga bomba, cancela timers e reseta sistema"
+  description: "Turns off pump, cancels all timers, and resets the system to a clean state"
   mode: single
   icon: mdi:alert-octagon
   sequence:
@@ -131,7 +131,7 @@ pump_emergency_reset:
 
 pump_detailed_report:
   alias: "Bomba - Relatório Detalhado"
-  description: "Gera relatório completo com todas as métricas v3.5"
+  description: "Generates a full status report with all v3.5 metrics as a persistent notification"
   mode: single
   icon: mdi:file-chart
   sequence:

@@ -1,0 +1,11 @@
+# AI context files (internal use only)
+CLAUDE.md
+versions/V2/claude_context.md
+
+# Internal development notes (not useful for public)
+docs/ENCERRAMENTO_V352.md
+docs/MUDANCAS_V352.md
+docs/RESUMO_VISUAL_V352.md
+
+# Legacy version (kept locally for reference)
+versions/

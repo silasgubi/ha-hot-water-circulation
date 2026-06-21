@@ -1,74 +1,73 @@
-# ADR-0001: Monitoramento por Corrente vs Potência
+# ADR-0001: Current Monitoring vs. Power Monitoring
 
-**Status**: Aceito | **Data**: 2024-12-11 | **Versão**: v3.0
+**Status:** Accepted | **Date:** 2024-12-11 | **Version:** v3.0
 
-## Contexto
+## Context
 
-O sistema v2.0 usava monitoramento por potência (48-53W) para detectar anomalias na bomba. Com mais dados coletados, identificamos que corrente é mais precisa.
+v2.0 used power monitoring (48–53W) to detect pump anomalies. After collecting more real-world data, it became clear that current is a more reliable signal.
 
-## Problema
+## Problem
 
-Como detectar melhor problemas na bomba (travamento, desgaste, sobrecarga)?
+How can we best detect pump problems (jamming, wear, overload)?
 
-## Opções Analisadas
+## Options
 
-### 1. Potência (W) - Status Quo v2.0
-**Prós:**
-- Já implementado e calibrado (143 medições)
-- Fácil de entender
+### 1. Power (W) — v2.0 status quo
+**Pros:**
+- Already implemented and calibrated (143 measurements)
+- Easy to understand
 
-**Contras:**
-- Varia com tensão da rede (220V ± 10%)
-- Menos preciso para detectar travamento inicial
+**Cons:**
+- Varies with mains voltage (220V ± 10%)
+- Less sensitive for detecting early-stage jamming
 
-### 2. Corrente (A) - Proposto
-**Prós:**
-- Mais estável (independente de variação de tensão)
-- Detecção mais precisa de travamento (corrente sobe antes de potência)
-- Permite cálculo de fator de potência
+### 2. Current (A) — proposed
+**Pros:**
+- More stable (independent of voltage variation)
+- More sensitive: current rises before power when motor starts to jam
+- Enables power factor calculation
 
-**Contras:**
-- Precisa recalibrar thresholds
-- Coleta de novos dados necessária
+**Cons:**
+- Requires recalibration
+- New data collection needed
 
-## Decisão
+## Decision
 
-Escolhemos: **Corrente (A)**
+**Current (A)**
 
-## Justificativa
+## Rationale
 
-1. **Dados coletados**: 1826 amostras (dezembro 2024) mostram distribuição mais consistente
-2. **Precisão**: Desvio padrão menor (0.005A vs 1.5W relativo)
-3. **Física**: Motor travando = corrente aumenta primeiro
-4. **Calibração**: 
-   - Normal: 0.303-0.323A (P5-P95)
-   - Crítico: 0.388A (max × 1.15)
+1. **Data-driven:** 1826 real samples (December 2024) show tighter, more consistent distribution
+2. **Precision:** Lower standard deviation (0.005A vs ~1.5W relative)
+3. **Physics:** A jamming motor draws more current before power rises noticeably
+4. **Calibrated thresholds:**
+   - Normal: 0.303–0.323A (P5–P95)
+   - Critical: 0.388A (max × 1.15)
 
-## Consequências
+## Consequences
 
-### Positivas
-- Detecção mais rápida de problemas
-- Menos falsos positivos por variação de tensão
-- Base para manutenção preditiva (tendências)
+**Positive:**
+- Faster problem detection
+- Fewer false positives from voltage fluctuation
+- Foundation for predictive maintenance (trend analysis)
 
-### Negativas Aceitas
-- Migração necessária (um release)
-- Helpers antigos precisam atualização
-- Usuários precisam aprender novos valores
+**Accepted negatives:**
+- One-time migration required
+- Old power-based helpers need updating
 
-## Implementação
+## Implementation
 
-**Arquivos afetados:**
-- `sensors.yaml`: Derivative e Statistics
-- `template_sensors.yaml`: Binary sensors
-- `automations.yaml`: Thresholds atualizados
+Files changed:
+- `sensors.yaml` — Derivative and Statistics sensors
+- `template_sensors.yaml` — Binary sensors updated
+- `automations_bomba.yaml` — Thresholds updated
 
-**Helpers novos:**
+New helpers:
 - `input_number.pump_current_normal_min`: 0.303
 - `input_number.pump_current_normal_max`: 0.323
 - `input_number.pump_current_critical_max`: 0.388
 
-## Referências
+## References
 
-- Análise: 1826 amostras dezembro/2024
-- Transcript: `2025-12-12-01-38-33-bomba-agua-v35-data-analysis.txt`
+- Analysis: 1826 samples, December 2024
+- Related: [ADR-0002: Anti-Inrush Filter](0002-derivative-inrush-filtering.md)

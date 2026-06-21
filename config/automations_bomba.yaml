@@ -1,6 +1,6 @@
 - id: bomba_agua_quente_controle_principal
   alias: "Bomba Água Quente - Controle Principal"
-  description: "Controla acionamento automático da bomba baseado em detecção de fluxo"
+  description: "Automatically controls pump activation based on flow detection"
   mode: restart
 
   trigger:
@@ -127,11 +127,11 @@
                 message: "Ciclo completo"
 
 # ================================================
-# 2. TIMEOUT SEGURANÇA (v3.0 com TTS)
+# 2. SAFETY TIMEOUT (v3.0 with TTS)
 # ================================================
 - id: bomba_timeout_seguranca
   alias: "Bomba - Timeout Segurança"
-  description: "Desliga bomba automaticamente após timeout com alerta TTS"
+  description: "Automatically shuts off pump after safety timeout with TTS alert"
   mode: single
 
   trigger:
@@ -189,11 +189,11 @@
         notification_id: pump_timeout
 
 # ================================================
-# 3. CONTROLE MANUAL (v3.0)
+# 3. MANUAL CONTROL (v3.0)
 # ================================================
 - id: bomba_controle_manual
   alias: "Bomba - Controle Manual"
-  description: "Override manual do sistema automático"
+  description: "Manual override of the automatic system"
   mode: restart
 
   trigger:
@@ -251,11 +251,11 @@
                 message: "Bomba desligada manualmente"
 
 # ================================================
-# 4. DESLIGAMENTO SEGURANÇA CORRENTE CRÍTICA (v3.0)
+# 4. CRITICAL CURRENT EMERGENCY SHUTOFF (v3.0)
 # ================================================
 - id: bomba_desligamento_seguranca_corrente
   alias: "Bomba - Desligamento Segurança Corrente Crítica"
-  description: "Desliga bomba imediatamente se corrente crítica (sem delay)"
+  description: "Immediately shuts off pump on critical current — no delay (emergency)"
   mode: single
 
   trigger:
@@ -314,11 +314,11 @@
         notification_id: pump_critical_shutdown
 
 # ================================================
-# 5. DETECÇÃO DESGASTE PROGRESSIVO (v3.0)
+# 5. PROGRESSIVE WEAR DETECTION (v3.0)
 # ================================================
 - id: bomba_deteccao_desgaste_progressivo
   alias: "Bomba - Detecção Desgaste Progressivo"
-  description: "Analisa tendências de 7d vs 30d para manutenção preditiva"
+  description: "Analyzes 7d vs 30d current trends for predictive maintenance"
   mode: single
 
   trigger:
@@ -411,12 +411,12 @@
                 notification_id: pump_progressive_wear_preventive
 
 # ================================================
-# 6. ALERTA MUDANÇA RÁPIDA (Derivative) - v3.5.2
+# 6. RAPID CHANGE ALERT (Derivative) — v3.5.2
 # ================================================
-# v3.5.2: Threshold 0.025 A/s + filtro anti-inrush + TTS removido
+# v3.5.2: Threshold 0.025 A/s + anti-inrush filter + TTS removed
 - id: bomba_alerta_mudanca_rapida
   alias: "Bomba - Alerta Mudança Rápida"
-  description: "Corrente subindo muito rápido - problema agudo (Derivative v3.5.2)"
+  description: "Current rising too fast — acute problem detection (Derivative v3.5.2)"
   mode: single
 
   trigger:
@@ -445,12 +445,12 @@
         message: "Taxa de mudança: {{ state_attr('binary_sensor.bomba_mudanca_rapida_corrente', 'taxa_atual') }} A/s"
 
 # ================================================
-# 7. ALERTA DESGASTE EMERGENTE (Statistics) - v3.5.2
+# 7. EMERGING WEAR ALERT (Statistics) — v3.5.2
 # ================================================
-# v3.5.2: TTS removido - alerta preventivo, não urgente
+# v3.5.2: TTS removed — preventive alert, not urgent
 - id: bomba_alerta_desgaste_emergente
   alias: "Bomba - Alerta Desgaste Emergente"
-  description: "Tendência de crescimento detectada via comparação 7d vs 30d (Statistics v3.5.2)"
+  description: "Growth trend detected via 7d vs 30d comparison (Statistics v3.5.2)"
   mode: single
 
   trigger:

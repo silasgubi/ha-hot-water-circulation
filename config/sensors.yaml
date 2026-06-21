@@ -1,11 +1,11 @@
-# ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-# ║ SENSORS.YAML - HOME ASSISTANT                                                                                                    ║
-# ║ Arquivo para inclusão via !include - Sensores REST e outros                                                                     ║
-# ║ v3.5 - Derivative corrigido para detectar inrush (~2s)                                                                          ║
-# ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ SENSORS.YAML — HOME ASSISTANT                                              ║
+# ║ Include file for !include — REST sensors and platform sensors              ║
+# ║ v3.5 — Derivative corrected to detect inrush (~2s window)                 ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 
 # ================================================
-# HISTORY STATS - Runtime Hoje
+# HISTORY STATS — Daily runtime
 # ================================================
 
 - platform: history_stats
@@ -18,25 +18,25 @@
   end: "{{ now() }}"
 
 # ================================================
-# DERIVATIVE - Taxa de Mudança (A/s) - v3.5
+# DERIVATIVE — Rate of change (A/s) — v3.5
 # ================================================
-# CRÍTICO: Inrush current dura ~2 segundos (0.35A→0.31A)
-# Janela de 5 SEGUNDOS captura transientes rápidos
-# unit_time: s = Amperes por SEGUNDO (não minutos!)
+# Inrush current lasts ~2 seconds (0.35A → 0.31A)
+# A 5-SECOND window captures fast transients correctly
+# unit_time: s = Amperes per SECOND (not per minute!)
 
 - platform: derivative
   source: sensor.bomba_de_circulacao_de_agua_quente_corrente
   name: "Bomba Taxa Mudança Corrente"
   unique_id: bomba_taxa_mudanca_corrente
-  unit_time: s                # v3.5: Amperes por SEGUNDO
-  time_window: "00:00:05"     # v3.5: Janela de 5 SEGUNDOS
+  unit_time: s                # v3.5: Amperes per SECOND
+  time_window: "00:00:05"     # v3.5: 5-SECOND window
   round: 4
 
 # ================================================
-# STATISTICS SENSORS - Análise Longo Prazo
+# STATISTICS SENSORS — Long-term analysis
 # ================================================
 
-# Média 24h - Detecta problemas agudos
+# 24h mean — detects acute problems
 - platform: statistics
   name: "Bomba Corrente Média 24h"
   unique_id: bomba_corrente_media_24h
@@ -47,7 +47,7 @@
     hours: 24
   precision: 3
 
-# Máxima 24h - Detecta picos recentes
+# 24h max — detects recent spikes
 - platform: statistics
   name: "Bomba Corrente Máxima 24h"
   unique_id: bomba_corrente_maxima_24h
@@ -58,7 +58,7 @@
     hours: 24
   precision: 3
 
-# Média 7d - Detecta tendências emergentes
+# 7d mean — detects emerging trends
 - platform: statistics
   name: "Bomba Corrente Média 7d"
   unique_id: bomba_corrente_media_7d
@@ -69,7 +69,7 @@
     days: 7
   precision: 3
 
-# Média 30d - Baseline de normalidade
+# 30d mean — normality baseline for wear comparison
 - platform: statistics
   name: "Bomba Corrente Média 30d"
   unique_id: bomba_corrente_media_30d
@@ -81,17 +81,17 @@
   precision: 3
 
 
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-# OUTROS SENSORES REST (adicione aqui conforme necessário)
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════
+# OTHER SENSORS (add here as needed)
+# ════════════════════════════════════════════════
 
-# Exemplo de estrutura para adicionar novos sensores REST:
-# 
+# Example structure for adding REST sensors:
+#
 # - platform: rest
-#   name: "Nome do Sensor"
-#   unique_id: id_unico_sensor
-#   resource: "https://api.exemplo.com/endpoint"
+#   name: "Sensor Name"
+#   unique_id: unique_sensor_id
+#   resource: "https://api.example.com/endpoint"
 #   timeout: 10
 #   scan_interval: 3600
-#   value_template: "{{ value_json.campo }}"
-#   icon: mdi:icone-apropriado
+#   value_template: "{{ value_json.field }}"
+#   icon: mdi:appropriate-icon
