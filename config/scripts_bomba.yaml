@@ -1,3 +1,8 @@
+# ⚠️  LOCALIZATION NOTE
+# Script notification messages are in Brazilian Portuguese — they display
+# in the Home Assistant UI of a Portuguese-speaking household.
+# Translate the message strings if you want English notifications.
+
 pump_system_test:
   alias: "Bomba - Teste Sistema Completo"
   description: "Runs a complete system test: turns pump on for 5s, checks current, then turns it off"

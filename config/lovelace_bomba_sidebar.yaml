@@ -1,8 +1,14 @@
-# ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-# ║ DASHBOARD BOMBA ÁGUA QUENTE - HOME ASSISTANT v3.5.1                                                                             ║
-# ║ Dashboard completo para sidebar - Sistema de Circulação de Água Quente                                                          ║
-# ║ Arquitetura v3.5: Derivative (dI/dt) com detecção inteligente de inrush                                                         ║
-# ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ HOT WATER CIRCULATION — Sidebar Dashboard v3.5.2 (Mushroom Cards)        ║
+# ║ Requires: HACS + Mushroom Cards + Mini Graph Card                        ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+#
+# ⚠️  LOCALIZATION NOTE
+# Dashboard labels, card titles, and notification messages are in Brazilian
+# Portuguese — this system runs in a Portuguese-speaking household.
+# Entity IDs are also in Portuguese (e.g. bomba_corrente_estabilizada).
+# To adapt this dashboard: rename entity IDs and translate UI strings to
+# your language. A full entity rename is planned for a future version.
 
 title: Bomba Água Quente
 path: bomba-agua-quente
