@@ -201,12 +201,15 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
+---
+
 <div align="center">
 
 *Don't guess thresholds. Measure them.*
 
-**[Silas Gubitoso](https://github.com/silasgubi)** · São Paulo, Brazil 🇧🇷
+**Silas Gubitoso** · São Paulo, Brazil 🇧🇷 · [GitHub](https://github.com/silasgubi)
 
-[![GitHub stars](https://img.shields.io/github/stars/silasgubi/ha-hot-water-circulation?style=social)](https://github.com/silasgubi/ha-hot-water-circulation)
+[![Stars](https://img.shields.io/github/stars/silasgubi/ha-hot-water-circulation?style=flat-square)](../../stargazers)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
 </div>
