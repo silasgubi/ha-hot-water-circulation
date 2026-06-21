@@ -1,134 +1,97 @@
-# Guia de Instalação - Dashboard Bomba Água Quente v3.5.1
+# Dashboard Installation Guide — Hot Water Circulation v3.5.2
 
-## 📋 Visão Geral
+Two dashboard variants are available as sidebar views in Home Assistant.
 
-Este guia explica como adicionar o dashboard da Bomba de Água Quente à aba lateral do Home Assistant.
-
-Existem **duas versões** disponíveis:
-
-1. **`lovelace_bomba_sidebar.yaml`** - Versão completa com Mushroom Cards (RECOMENDADO)
-2. **`lovelace_bomba_sidebar_native.yaml`** - Versão usando apenas cards nativos do HA
+| Variant | File | Dependencies |
+|---------|------|-------------|
+| ⭐ Recommended | `lovelace_bomba_sidebar.yaml` | HACS + Mushroom Cards + Mini Graph Card |
+| No deps | `lovelace_bomba_sidebar_native.yaml` | None (native HA cards only) |
 
 ---
 
-## 🎯 Método 1: Dashboard via UI (RECOMENDADO)
+## Method 1 — Via UI (recommended)
 
-Este é o método mais fácil e não requer editar arquivos de configuração.
+### Step 1: Install custom cards (Mushroom variant only)
 
-### Passo 1: Preparar Custom Cards (apenas para versão Mushroom)
+If using the Mushroom variant, install via HACS → Frontend:
+- **Mushroom Cards**
+- **Mini Graph Card** (optional — better graphs)
+- **Card Mod** (optional — styling)
 
-Se for usar a versão com Mushroom Cards, instale via HACS:
+Restart Home Assistant after installing. Skip this step if using the native variant.
 
-1. Abra **HACS** → **Frontend**
-2. Pesquise e instale:
-   - **Mushroom Cards**
-   - **Mini Graph Card** (opcional, para gráficos melhores)
-   - **Card Mod** (opcional, para estilização)
+### Step 2: Create a new view
 
-3. Reinicie o Home Assistant após instalar
+1. Settings → Dashboards → select your main dashboard
+2. Click ⋮ → **Edit Dashboard**
+3. Click **+ ADD VIEW**
 
-**IMPORTANTE:** Se não tiver HACS ou não quiser usar custom cards, use a versão `lovelace_bomba_sidebar_native.yaml`
+### Step 3: Configure the view
 
-### Passo 2: Criar Nova View no Dashboard
+- **Title:** anything you like (e.g. "Hot Water Pump")
+- **Icon:** `mdi:pump`
+- **Path:** `hot-water-pump`
+- **Type:** Sidebar
 
-1. Abra o **Home Assistant**
-2. Vá em **Configurações** → **Dashboards**
-3. Selecione seu dashboard principal (geralmente "Home")
-4. Clique nos **três pontos** (⋮) no canto superior direito
-5. Selecione **"Editar Dashboard"**
-6. Clique em **"+ ADICIONAR VIEW"**
+Save.
 
-### Passo 3: Configurar a Nova View
+### Step 4: Paste the YAML
 
-1. Na nova view, clique em **"EDITAR"** (ícone de lápis)
-2. Configure:
-   - **Título:** Bomba Água Quente
-   - **Ícone:** mdi:pump
-   - **Path:** bomba-agua-quente
-   - **Tipo:** Sidebar
+1. Click ⋮ on the new view → **Edit in Raw YAML**
+2. Delete all existing content
+3. Paste the full contents of your chosen file:
+   - Mushroom: `config/lovelace_bomba_sidebar.yaml`
+   - Native: `config/lovelace_bomba_sidebar_native.yaml`
+4. Save → Done
 
-3. Clique em **"SALVAR"**
+### Step 5: Verify
 
-### Passo 4: Adicionar o Conteúdo YAML
-
-1. Na view recém-criada, clique nos **três pontos** (⋮)
-2. Selecione **"Editar em YAML Bruto"**
-3. **APAGUE TODO** o conteúdo existente
-4. Cole o conteúdo de um dos arquivos:
-   - **Com Mushroom:** `config/lovelace_bomba_sidebar.yaml`
-   - **Sem custom cards:** `config/lovelace_bomba_sidebar_native.yaml`
-
-5. Clique em **"SALVAR"**
-6. Clique em **"CONCLUÍDO"** para sair do modo de edição
-
-### Passo 5: Verificar
-
-1. A nova aba **"Bomba Água Quente"** deve aparecer na sidebar
-2. Clique nela para verificar se tudo está funcionando
-3. Verifique se todos os sensores estão exibindo dados corretos
+The new tab should appear in the sidebar. Check that all sensors display data.
 
 ---
 
-## 🎯 Método 2: Dashboard via Configuration.yaml
+## Method 2 — Via configuration.yaml
 
-Este método é mais avançado e permite versionamento via Git.
+More advanced — allows Git versioning of the dashboard.
 
-### Passo 1: Mover Arquivo
-
-Copie o arquivo YAML escolhido para a pasta `/config/`:
+### Step 1: Copy the file
 
 ```bash
-# Escolha UMA das opções:
+# Mushroom variant
+cp config/lovelace_bomba_sidebar.yaml /config/dashboards/pump.yaml
 
-# Opção 1: Com Mushroom Cards
-cp config/lovelace_bomba_sidebar.yaml /config/dashboards/bomba.yaml
-
-# Opção 2: Native Cards
-cp config/lovelace_bomba_sidebar_native.yaml /config/dashboards/bomba.yaml
+# Native variant
+cp config/lovelace_bomba_sidebar_native.yaml /config/dashboards/pump.yaml
 ```
 
-### Passo 2: Editar configuration.yaml
-
-Adicione ao seu `configuration.yaml`:
+### Step 2: Edit configuration.yaml
 
 ```yaml
 lovelace:
   mode: storage
   dashboards:
-    bomba-agua-quente:
+    hot-water-pump:
       mode: yaml
-      title: Bomba Água Quente
+      title: Hot Water Pump
       icon: mdi:pump
       show_in_sidebar: true
-      filename: dashboards/bomba.yaml
+      filename: dashboards/pump.yaml
 ```
 
-### Passo 3: Verificar Configuração
+### Step 3: Validate and restart
 
 ```bash
 ha core check
-```
-
-### Passo 4: Reiniciar Home Assistant
-
-```bash
 ha core restart
 ```
 
-### Passo 5: Verificar
-
-1. Após reiniciar, a aba **"Bomba Água Quente"** deve aparecer na sidebar
-2. Clique nela para verificar
-
 ---
 
-## 🔧 Pré-requisitos
+## Prerequisites
 
-Antes de instalar o dashboard, certifique-se de que todos os componentes da v3.5 estão configurados:
+Make sure all v3.5 components are configured before installing the dashboard.
 
-### ✅ Entidades Necessárias
-
-#### Input Numbers
+### Input numbers
 ```yaml
 input_number:
   pump_current_normal_min:
@@ -163,25 +126,20 @@ input_number:
     initial: 30
 ```
 
-#### Input Booleans
+### Input booleans
 ```yaml
 input_boolean:
   pump_manual_override:
-    name: Override Manual da Bomba
     icon: mdi:shield-off
   pump_manual_control:
-    name: Controle Manual da Bomba
     icon: mdi:hand-back-right
   pump_alerts_enabled:
-    name: Alertas TTS Habilitados
     icon: mdi:volume-high
-  # Opcional - para seção DEBUG
-  pump_debug_mode:
-    name: Modo Debug
+  pump_debug_mode:       # optional — controls DEBUG section visibility
     icon: mdi:bug
 ```
 
-#### Timers
+### Timers
 ```yaml
 timer:
   pump_activation_delay:
@@ -192,175 +150,66 @@ timer:
     duration: "00:30:00"
 ```
 
-### ✅ Sensores v3.5
+### Required sensors
 
-Certifique-se de que os seguintes sensores estão configurados:
+Verify these exist in Developer Tools → States before installing the dashboard:
 
-- `sensor.bomba_taxa_mudanca_corrente` (Derivative)
-- `sensor.bomba_corrente_media_24h` (Statistics)
-- `sensor.bomba_corrente_media_7d` (Statistics)
-- `sensor.bomba_corrente_media_30d` (Statistics)
-- `binary_sensor.bomba_corrente_estabilizada`
-- `binary_sensor.bomba_mudanca_rapida_corrente`
-- `binary_sensor.bomba_desgaste_emergente`
-- `binary_sensor.bomba_corrente_anormal`
-- `binary_sensor.bomba_corrente_critica`
+```
+sensor.bomba_taxa_mudanca_corrente       (Derivative)
+sensor.bomba_corrente_media_24h          (Statistics)
+sensor.bomba_corrente_media_7d           (Statistics)
+sensor.bomba_corrente_media_30d          (Statistics)
+binary_sensor.bomba_corrente_estabilizada
+binary_sensor.bomba_mudanca_rapida_corrente
+binary_sensor.bomba_desgaste_emergente
+binary_sensor.bomba_corrente_anormal
+binary_sensor.bomba_corrente_critica
+```
 
-Verifique em:
-- `config/sensors.yaml` (Derivative + Statistics)
-- `config/template_sensors.yaml` (Binary sensors + Templates)
+Source files: `config/sensors.yaml` and `config/template_sensors.yaml`.
 
 ---
 
-## 🎨 Personalização
+## Customization
 
-### Esconder Seção DEBUG
+### Hide the DEBUG section
 
-Se não quiser ver a seção DEBUG, você tem duas opções:
+Either create `input_boolean.pump_debug_mode` and leave it off, or delete the DEBUG section (Section 8) from the YAML file directly.
 
-**Opção 1: Criar input_boolean e deixar desligado**
-```yaml
-input_boolean:
-  pump_debug_mode:
-    name: Modo Debug
-    initial: off
-```
-
-**Opção 2: Remover seção DEBUG**
-
-Na versão Mushroom (`lovelace_bomba_sidebar.yaml`), apague a SEÇÃO 8 completa (linhas que começam com o comentário "SEÇÃO 8: DEBUG").
-
-Na versão Native, apague o card correspondente.
-
-### Alterar Cores e Temas
-
-O dashboard respeita o tema configurado no Home Assistant. Para personalizar:
-
-1. Instale um tema via HACS (ex: iOS Dark Mode, Mushroom Themes)
-2. Ative em **Configurações** → **Perfil** → **Tema**
-
-### Modificar Thresholds no Dashboard
-
-Os thresholds são lidos dos `input_number`, mas se quiser alterar as cores do gauge:
+### Gauge threshold colors
 
 ```yaml
 severity:
-  green: 0.303    # Início da faixa verde
-  yellow: 0.323   # Início da faixa amarela
-  red: 0.388      # Início da faixa vermelha
+  green: 0.303    # start of normal range
+  yellow: 0.323   # start of warning range
+  red: 0.388      # start of critical range
 ```
 
----
+### Themes
 
-## 🐛 Troubleshooting
-
-### Problema: Cards aparecem em branco
-
-**Causa:** Custom cards não instalados
-
-**Solução:**
-1. Instale Mushroom Cards via HACS
-2. OU use a versão Native: `lovelace_bomba_sidebar_native.yaml`
-
-### Problema: Entidades "unavailable"
-
-**Causa:** Sensores v3.5 não configurados
-
-**Solução:**
-1. Verifique se `sensors.yaml` e `template_sensors.yaml` estão corretos
-2. Execute `ha core check`
-3. Reinicie o HA
-4. Verifique em **Developer Tools** → **Estados** se as entidades existem
-
-### Problema: Gráficos não aparecem
-
-**Causa:** Mini Graph Card não instalado (versão Mushroom)
-
-**Solução:**
-1. Instale Mini Graph Card via HACS
-2. OU remova o card `custom:mini-graph-card` e use apenas `history-graph`
-
-### Problema: Dashboard não aparece na sidebar
-
-**Causa:** Configuração de view incorreta
-
-**Solução:**
-1. Certifique-se de que o tipo é **"sidebar"** (Método 1)
-2. Certifique-se de que `show_in_sidebar: true` (Método 2)
-3. Limpe cache do navegador (Ctrl+Shift+R)
+The dashboard follows the active HA theme. For best results with the Mushroom variant, install a Mushroom-compatible theme via HACS (e.g. Mushroom Themes).
 
 ---
 
-## 📱 Mobile vs Desktop
+## Troubleshooting
 
-O dashboard é responsivo e funciona em ambos, mas algumas dicas:
-
-### Mobile
-- Use a versão Mushroom para melhor UX mobile
-- Considere esconder a seção DEBUG
-- Os gráficos podem ser compactados
-
-### Desktop
-- Aproveite a seção DEBUG completa
-- Gráficos ficam mais legíveis
-- Pode dividir em duas colunas (editar grid columns)
+| Problem | Fix |
+|---------|-----|
+| Cards appear blank | Install Mushroom Cards via HACS, or switch to the native variant |
+| Entities show "unavailable" | Check `sensors.yaml` and `template_sensors.yaml`, then run `ha core check` |
+| Graphs missing | Install Mini Graph Card via HACS, or replace `mini-graph-card` with `history-graph` |
+| Dashboard not in sidebar | Verify view type is "Sidebar" (Method 1) or `show_in_sidebar: true` (Method 2); clear browser cache |
+| Wear sensors show no data | Statistics sensors need 7–30 days of data to stabilize — this is expected on first install |
 
 ---
 
-## 🔄 Atualizações Futuras
+## Tips
 
-### Como atualizar o dashboard
-
-1. Baixe a nova versão do arquivo YAML
-2. Se usar **Método 1 (UI)**:
-   - Edite a view em YAML Bruto
-   - Cole o novo conteúdo
-   - Salve
-
-3. Se usar **Método 2 (config.yaml)**:
-   - Substitua o arquivo em `/config/dashboards/`
-   - Execute `ha core check`
-   - Reinicie o HA
-
-### Versionamento
-
-O dashboard segue a versão do sistema:
-
-- **v3.5.1** - Versão atual (dezembro 2024)
-- Sensores derivative corrigidos
-- Detecção inteligente de inrush
+1. **Start with the native variant** if you're new to custom cards
+2. **Enable debug mode** initially to understand how all sensors interact
+3. **Wait 7 days** before relying on wear trend sensors (7d/30d statistics need time to fill)
+4. **Adjust thresholds** after collecting real data from your pump — see [calibration methodology](../README.md#-the-data-story)
 
 ---
 
-## 📚 Documentação Adicional
-
-- **Sistema Completo:** `CLAUDE.md`
-- **Lessons Learned:** `docs/lessons-learned.md`
-- **ADR Corrente vs Potência:** `docs/decisions/0001-current-vs-power.md`
-- **Automações:** `config/automations_bomba.yaml`
-- **Scripts:** `config/scripts_bomba.yaml`
-
----
-
-## 💡 Dicas
-
-1. **Comece com a versão Native** se não tiver experiência com custom cards
-2. **Habilite DEBUG mode** inicialmente para entender o funcionamento
-3. **Monitore por 7 dias** para ver os sensores de tendência (média 7d/30d) funcionarem
-4. **Ajuste thresholds** conforme necessário baseado em seus dados reais
-5. **Use o botão Relatório** para análise detalhada do sistema
-
----
-
-## 📞 Suporte
-
-Em caso de dúvidas:
-1. Verifique os logs: **Configurações** → **Sistema** → **Logs**
-2. Valide YAML: `ha core check`
-3. Verifique estados: **Developer Tools** → **Estados**
-4. Consulte `docs/lessons-learned.md` para problemas conhecidos
-
----
-
-**Desenvolvido para Home Assistant**
-**Sistema de Bomba de Água Quente v3.5.1**
+*See [docs/lessons-learned.md](lessons-learned.md) for known issues and workarounds.*
