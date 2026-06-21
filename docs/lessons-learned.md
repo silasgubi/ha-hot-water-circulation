@@ -51,7 +51,7 @@
 
 **Validated:** Dec 18, 2024 (v3.5.2)  
 **File:** `template_sensors.yaml` — `bomba_mudanca_rapida_corrente`  
-**Reference:** [docs/analysis/ANALISE_CORRENTE_20241218.md](analysis/ANALISE_CORRENTE_20241218.md)
+**Reference:** [docs/analysis/current-calibration-analysis.md](analysis/current-calibration-analysis.md)
 
 ### Strategic TTS vs. Universal TTS
 **Problem:** TTS on technical monitoring alerts (rapid change, wear trend) created noise pollution at home.  

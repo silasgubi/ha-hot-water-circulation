@@ -127,6 +127,6 @@ Real inrush lasts 2–3s. Adding 7s safety margin also covers mains voltage tran
 
 ## References
 
-- [docs/analysis/ANALISE_CORRENTE_20241218.md](../analysis/ANALISE_CORRENTE_20241218.md) — full data analysis
+- [docs/analysis/current-calibration-analysis.md](../analysis/current-calibration-analysis.md) — full data analysis
 - [ADR-0001: Current vs Power](0001-current-vs-power.md)
 - Motor datasheet: 50W pump inrush typically 2–3× nominal current for 1–3s

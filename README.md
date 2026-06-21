@@ -169,7 +169,7 @@ ha state get binary_sensor.bomba_corrente_estabilizada
 | `config/lovelace_bomba_sidebar_native.yaml` | Dashboard — native HA cards (no deps) |
 | [docs/decisions/0001-current-vs-power.md](docs/decisions/0001-current-vs-power.md) | ADR: why current over power |
 | [docs/decisions/0002-derivative-inrush-filtering.md](docs/decisions/0002-derivative-inrush-filtering.md) | ADR: anti-inrush filter design |
-| [docs/analysis/ANALISE_CORRENTE_20241218.md](docs/analysis/ANALISE_CORRENTE_20241218.md) | Full calibration data analysis |
+| [docs/analysis/current-calibration-analysis.md](docs/analysis/current-calibration-analysis.md) | Full calibration data analysis |
 | [docs/lessons-learned.md](docs/lessons-learned.md) | Technical lessons learned |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 
