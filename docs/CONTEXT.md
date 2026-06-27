@@ -68,7 +68,7 @@ CRÍTICO (>0.388A):
 
 ## Versões
 
-### v3.6.0 (2026-06-27) — ⏳ Aguardando instalação
+### v3.6.0 (2026-06-27) — ✅ Instalado (aguardando restart HA)
 - **Novo**: `binary_sensor.bomba_falha_circulacao` — detecta falha Zigbee silenciosa via temperatura
 - **Novo**: `sensor.bomba_taxa_mudanca_temperatura` — derivativo °C/min
 - **Novo**: `input_number.bomba_temp_funcionamento_minima` — threshold 32°C configurável
