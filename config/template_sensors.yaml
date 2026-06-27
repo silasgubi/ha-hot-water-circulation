@@ -283,3 +283,40 @@
           {{ states('sensor.bomba_de_circulacao_de_agua_quente_corrente') | float(0) | round(3) }}
         limite_critico: >
           {{ states('input_number.pump_current_critical_max') | float(0.388) }}A
+
+    # ================================================
+    # LAYER 2d: Circulation Failure by Temperature (v3.6.0)
+    # ================================================
+    # Detects silent failure: pump commanded ON but water temperature doesn't rise.
+    # Main cause: Zigbee radio fails to initialize → command sent, relay doesn't fire.
+    # Sensor: sonoff_1000bcbe07_temperature (pipe after pump)
+    # Logic: (pump_on OR valve_open) AND temp < min_temp → persists 2 min → alert
+    # delay_on 2min: normal temp rise takes <1min; 2min covers inrush + pipe fill.
+    - name: "Bomba Falha Circulação"
+      unique_id: bomba_falha_circulacao
+      device_class: problem
+      delay_on: "00:02:00"    # only fires if condition holds for 2 continuous minutes
+      delay_off: "00:01:00"
+      state: >
+        {% set pump_on = is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') %}
+        {% set valve_open = is_state('valve.hot_water', 'open') %}
+        {% set temp = states('sensor.sonoff_1000bcbe07_temperature') | float(0) %}
+        {% set min_temp = states('input_number.bomba_temp_funcionamento_minima') | float(32) %}
+        {{ (pump_on or valve_open) and temp < min_temp }}
+      icon: >
+        {% if is_state('binary_sensor.bomba_falha_circulacao', 'on') %}
+          mdi:thermometer-alert
+        {% else %}
+          mdi:thermometer-check
+        {% endif %}
+      attributes:
+        temperatura_atual: >
+          {{ states('sensor.sonoff_1000bcbe07_temperature') | float(0) | round(1) }}
+        temperatura_minima: >
+          {{ states('input_number.bomba_temp_funcionamento_minima') | float(32) }}
+        taxa_mudanca: >
+          {{ states('sensor.bomba_taxa_mudanca_temperatura') | float(0) | round(2) }}
+        bomba_ligada: >
+          {{ is_state('switch.bomba_de_circulacao_de_agua_quente', 'on') }}
+        valvula_aberta: >
+          {{ is_state('valve.hot_water', 'open') }}

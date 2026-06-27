@@ -6,6 +6,28 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versio
 
 ---
 
+## [3.6.0] - 2026-06-27
+
+### Added
+- **Temperature-based circulation failure detection** (`binary_sensor.bomba_falha_circulacao` — Layer 2d)
+  - Detects silent Zigbee failure: pump commanded ON but relay didn't fire
+  - Sensor: `sensor.sonoff_1000bcbe07_temperature` (pipe after pump)
+  - Logic: (pump ON OR valve open) AND temp < threshold for 2 continuous minutes → alert
+  - `delay_on: 2min` — normal temp rise takes <1min; 2min covers inrush + pipe fill
+- **Temperature derivative sensor** (`sensor.bomba_taxa_mudanca_temperatura`) — °C/min, 5min window
+- **Configurable threshold helper** (`input_number.bomba_temp_funcionamento_minima`) — default 32°C, slider 25–45°C
+- **Multi-channel alert** (`bomba_alerta_falha_circulacao` automation #8):
+  - TTS via `script.nabu_speak` (`volume_type: default`, respects quiet hours)
+  - Push notification iPhone (`notify.mobile_app_iphone_do_silas`, `interruption-level: time-sensitive`)
+  - Persistent notification with diagnostic info
+  - Logbook + system_log at `warning` level
+- New file: `config/helpers_temperatura.yaml` with install instructions
+
+### Why
+Zigbee radio initialization failures caused the pump to appear ON in HA while the relay remained inactive. The current-based system couldn't detect this — switch showed `on` but no current flows until relay fires. Temperature monitoring closes this gap with a completely independent detection layer.
+
+---
+
 ## [3.5.2] - 2026-01-06
 
 ### Fixed

@@ -477,3 +477,77 @@
       data:
         name: "📈 DESGASTE EMERGENTE"
         message: "Média 7d > 30d. Considere inspeção preventiva."
+
+# ================================================
+# 8. CIRCULATION FAILURE ALERT (Temperature) — v3.6.0
+# ================================================
+# Detects silent Zigbee failure: switch shows ON but pump didn't physically activate.
+# Fires when pump/valve active for 2+ min and pipe temperature stays below threshold.
+- id: bomba_alerta_falha_circulacao
+  alias: "Bomba - Alerta Falha de Circulação"
+  description: "Pump on 2+ min but temp not rising — likely Zigbee/relay silent failure (v3.6.0)"
+  mode: single
+
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bomba_falha_circulacao
+      to: "on"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.pump_alerts_enabled
+      state: "on"
+
+  action:
+    - service: system_log.write
+      data:
+        message: >
+          🌡️ FALHA CIRCULAÇÃO - Bomba Água Quente |
+          Temperatura: {{ states('sensor.sonoff_1000bcbe07_temperature') }}°C |
+          Mínima esperada: {{ states('input_number.bomba_temp_funcionamento_minima') }}°C |
+          Taxa mudança: {{ states('sensor.bomba_taxa_mudanca_temperatura') }}°C/min |
+          Bomba: {{ states('switch.bomba_de_circulacao_de_agua_quente') }} |
+          Válvula: {{ states('valve.hot_water') }}
+        level: warning
+
+    - data:
+        message: >
+          Atenção! A bomba de água quente está ligada há mais de 2 minutos,
+          mas a temperatura não subiu. Temperatura atual:
+          {{ states('sensor.sonoff_1000bcbe07_temperature') }} graus.
+          Possível falha no Zigbee ou relé não acionado.
+        volume_type: default
+      action: script.nabu_speak
+
+    - action: notify.mobile_app_iphone_do_silas
+      data:
+        title: "⚠️ Bomba: Sem Circulação"
+        message: >
+          Temperatura {{ states('sensor.sonoff_1000bcbe07_temperature') }}°C após 2min
+          com bomba ligada. Provável falha Zigbee.
+        data:
+          interruption-level: time-sensitive
+
+    - service: persistent_notification.create
+      data:
+        title: "⚠️ Falha de Circulação Detectada"
+        notification_id: bomba_falha_circulacao
+        message: >
+          **Bomba ligada há 2+ min sem aquecimento**
+
+          • Temperatura atual: {{ states('sensor.sonoff_1000bcbe07_temperature') }}°C
+          • Mínima esperada: {{ states('input_number.bomba_temp_funcionamento_minima') }}°C
+          • Taxa de mudança: {{ states('sensor.bomba_taxa_mudanca_temperatura') }}°C/min
+
+          **Causa mais provável**: falha Zigbee — comando enviado, relé não acionou.
+
+          *Verifique o rádio Zigbee em Configurações → Sistema → Hardware.*
+
+    - service: logbook.log
+      data:
+        name: "🌡️ FALHA CIRCULAÇÃO"
+        message: >
+          Temperatura {{ states('sensor.sonoff_1000bcbe07_temperature') }}°C após 2min.
+          Bomba: {{ states('switch.bomba_de_circulacao_de_agua_quente') }},
+          Válvula: {{ states('valve.hot_water') }},
+          Taxa: {{ states('sensor.bomba_taxa_mudanca_temperatura') }}°C/min

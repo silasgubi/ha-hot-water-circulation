@@ -1,0 +1,77 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ HELPERS — Detecção de Falha de Circulação por Temperatura v3.6.0          ║
+# ║ Threshold configurável para alerta quando temperatura não sobe             ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ════════════════════════════════════════════════
+# TEMPERATURA MÍNIMA ESPERADA
+# ════════════════════════════════════════════════
+# Threshold para binary_sensor.bomba_falha_circulacao:
+# Se bomba/válvula ativa e temperatura < este valor por 2 min → alerta.
+#
+# Calibração inicial: 32°C (margem segura entre normal 35-46°C e falha 24-30°C)
+# Recalibrar após 7-14 dias de dados coletados.
+# Sensor de referência: sensor.sonoff_1000bcbe07_temperature (cano pós-bomba)
+
+input_number:
+  bomba_temp_funcionamento_minima:
+    name: Temp. Mínima Esperada (Circulação)
+    min: 25
+    max: 45
+    step: 0.5
+    initial: 32
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-water
+    mode: slider
+
+# ════════════════════════════════════════════════
+# HOW TO INSTALL
+# ════════════════════════════════════════════════
+
+# Option 1: Via configuration.yaml (recommended)
+# -----------------------------------------------
+# Add to your configuration.yaml:
+#
+# input_number: !include_dir_merge_named includes/input_number/
+#
+# Or copy the block directly:
+#
+# input_number:
+#   bomba_temp_funcionamento_minima:
+#     name: Temp. Mínima Esperada (Circulação)
+#     min: 25
+#     max: 45
+#     step: 0.5
+#     initial: 32
+#     unit_of_measurement: "°C"
+#     icon: mdi:thermometer-water
+#     mode: slider
+
+# Option 2: Via UI
+# -----------------
+# 1. Settings → Devices & Services → Helpers
+# 2. Click + CREATE HELPER
+# 3. Select "Number"
+# 4. Fill in:
+#    - Name: Temp. Mínima Esperada (Circulação)
+#    - Entity ID: bomba_temp_funcionamento_minima
+#    - Minimum: 25
+#    - Maximum: 45
+#    - Step: 0.5
+#    - Unit: °C
+#    - Icon: mdi:thermometer-water
+#    - Display mode: Slider
+# 5. Save
+# 6. Set value to 32 via UI
+
+# ════════════════════════════════════════════════
+# CALIBRATION NOTES
+# ════════════════════════════════════════════════
+# Initial value: 32°C
+#   - Working: 35–46°C (histórico dez/2024)
+#   - Failed/cold: 24–30°C
+#   - Gap is clear — 32°C has ≥3°C margin on both sides
+#
+# Adjust after collecting 7-14 days of data:
+#   - Raise if getting false positives (cold season, slow heater)
+#   - Lower if failing to detect real failures

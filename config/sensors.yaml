@@ -81,6 +81,22 @@
   precision: 3
 
 
+# ================================================
+# DERIVATIVE — Rate of change (°C/min) — v3.6.0
+# ================================================
+# Sensor: sonoff_1000bcbe07_temperature (pipe after pump)
+# Used for dashboard display and diagnostic attributes.
+# Primary detection uses raw temperature vs threshold (not this derivative).
+
+- platform: derivative
+  source: sensor.sonoff_1000bcbe07_temperature
+  name: "Bomba Taxa Mudança Temperatura"
+  unique_id: bomba_taxa_mudanca_temperatura
+  unit_time: min                # °C per MINUTE (more intuitive for temperature)
+  time_window: "00:05:00"       # 5-minute smoothing window
+  round: 2
+
+
 # ════════════════════════════════════════════════
 # OTHER SENSORS (add here as needed)
 # ════════════════════════════════════════════════
