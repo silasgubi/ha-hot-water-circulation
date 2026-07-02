@@ -1,3 +1,5 @@
+> 📚 **Documentação migrada (2026-07-01)**: a doc viva deste projeto está no vault Obsidian do config — nota `Z:\docs\projetos$note.md` (ver `DOCS_NO_VAULT.md`). Os docs deste repo são históricos.
+
 <div align="center">
 
 # 💧 Hot Water Circulation Intelligence
