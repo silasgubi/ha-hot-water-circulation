@@ -2,7 +2,12 @@
 
 ## Instalação no Home Assistant
 
-**Status: ⏳ NÃO INSTALADO — implementado no repo em 2026-07-12**
+**Status: ✅ INSTALADO em z:\ — 2026-07-12 (falta apenas o restart do HA)**
+
+Todos os arquivos abaixo já foram aplicados em `z:\`, incluindo o dashboard
+(`z:\dashboards\bomba_agua_quente.yaml`, deploy via `deploy_dashboards.py`).
+`input_boolean.pump_lockout` e `sensor.bomba_corrente_sob_carga` só passam a
+existir depois do restart (helper novo em `configuration.yaml`).
 
 Mudanças da v3.7.0 (correções da análise crítica):
 
@@ -23,8 +28,8 @@ Mudanças da v3.7.0 (correções da análise crítica):
 
 ### Passos
 
-1. Aplicar arquivos acima em `z:\`
-2. Restart HA (helper novo em configuration.yaml exige restart)
+1. ~~Aplicar arquivos acima em `z:\`~~ ✅ feito
+2. **Restart HA** (helper novo em configuration.yaml exige restart) — pendente
 3. Verificar que `input_boolean.pump_lockout` existe e está **off**
 4. Verificar `sensor.bomba_corrente_sob_carga` = `unavailable` com bomba parada, e = corrente (~0.31A) durante um ciclo de bomba
 
