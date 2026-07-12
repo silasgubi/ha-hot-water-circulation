@@ -6,6 +6,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versio
 
 ---
 
+## [3.7.0] - 2026-07-12
+
+### Added
+- **Current under load** (`sensor.bomba_corrente_sob_carga`): mirrors pump current only while `bomba_corrente_estabilizada` is on, `unavailable` otherwise. Statistics 7d/30d now use it as source.
+- **Emergency lockout** (`input_boolean.pump_lockout`, new file `config/helpers_bomba.yaml`): set by the critical-current shutdown, checked by the main automation — pump cannot re-enable on the next tap opening until reset (`script.pump_emergency_reset` clears it).
+- **Wear alert notifications**: `bomba_alerta_desgaste_emergente` now sends mobile push + persistent notification (was system_log/logbook only — effectively invisible).
+
+### Fixed
+- **Diluted wear metric**: 7d/30d means previously averaged ALL current samples including idle (0A), so they measured duty cycle, not motor health (live means ~0.27A vs 0.303–0.323A running range; day-to-day usage noise ~10% vs 3% wear threshold). Sourcing from current-under-load restores the calibrated 3% threshold's meaning.
+- **False "Zigbee failure" on temp sensor dropout**: `bomba_falha_circulacao` used `float(0)` — an unavailable temperature sensor read as 0°C and triggered the circulation-failure alert. Now guarded with an `availability` template.
+
+### Migration note
+Switching the Statistics source resets the 7d/30d means; they rebuild over 7/30 days. During that window the wear detector stays silent by design (`media_30d > 0` guard + availability condition on the 22:00 automation).
+
+---
+
 ## [3.6.0] - 2026-06-27
 
 ### Added
