@@ -1,0 +1,13 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ HELPERS — Lockout de Emergência v3.7.0                                      ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# Ligado automaticamente pelo desligamento de emergência (corrente crítica).
+# Enquanto ON, a automação principal NÃO religa a bomba — evita ciclo
+# liga-desliga com rotor travado. Reset: script.pump_emergency_reset ou UI.
+#
+# Instalação: copiar o bloco para configuration.yaml (ou include equivalente).
+
+input_boolean:
+  pump_lockout:
+    name: Bomba Bloqueada (Emergência)
+    icon: mdi:lock-alert

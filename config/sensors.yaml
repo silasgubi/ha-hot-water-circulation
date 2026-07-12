@@ -59,10 +59,12 @@
   precision: 3
 
 # 7d mean — detects emerging trends
+# v3.7.0: source is current UNDER LOAD (unavailable when idle), so the mean
+# reflects motor health, not duty cycle. History rebuilds over 7 days.
 - platform: statistics
   name: "Bomba Corrente Média 7d"
   unique_id: bomba_corrente_media_7d
-  entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  entity_id: sensor.bomba_corrente_sob_carga
   state_characteristic: mean
   sampling_size: 5000
   max_age:
@@ -70,10 +72,11 @@
   precision: 3
 
 # 30d mean — normality baseline for wear comparison
+# v3.7.0: source is current under load (see 7d note). Rebuilds over 30 days.
 - platform: statistics
   name: "Bomba Corrente Média 30d"
   unique_id: bomba_corrente_media_30d
-  entity_id: sensor.bomba_de_circulacao_de_agua_quente_corrente
+  entity_id: sensor.bomba_corrente_sob_carga
   state_characteristic: mean
   sampling_size: 10000
   max_age:

@@ -30,6 +30,10 @@
     - condition: state
       entity_id: input_boolean.pump_manual_override
       state: "off"
+    # v3.7.0: after an emergency shutdown, do not re-enable until inspected
+    - condition: state
+      entity_id: input_boolean.pump_lockout
+      state: "off"
 
   action:
     - choose:
@@ -268,6 +272,12 @@
       target:
         entity_id: switch.bomba_de_circulacao_de_agua_quente
 
+    # v3.7.0: lockout — blocks the main automation from re-enabling the pump
+    # on the next tap opening until manually reset (script.pump_emergency_reset)
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.pump_lockout
+
     - service: timer.cancel
       target:
         entity_id:
@@ -309,6 +319,10 @@
           1. Inspeção completa do motor
           2. Verificar tubulação
           3. Testar sem carga
+
+          🔒 Sistema BLOQUEADO (lockout ativo). Após inspeção,
+          desbloqueie via `script.pump_emergency_reset` ou desligando
+          `input_boolean.pump_lockout`.
 
           Horário: {{ now().strftime('%H:%M:%S') }}
         notification_id: pump_critical_shutdown
@@ -477,6 +491,30 @@
       data:
         name: "📈 DESGASTE EMERGENTE"
         message: "Média 7d > 30d. Considere inspeção preventiva."
+
+    # v3.7.0: user-visible notifications — before this, the wear alert only
+    # wrote to system_log/logbook and was effectively invisible.
+    - action: notify.mobile_app_iphone_do_silas
+      data:
+        title: "📈 Bomba: Desgaste Emergente"
+        message: >
+          Corrente média 7d ({{ states('sensor.bomba_corrente_media_7d') }}A)
+          acima do baseline 30d ({{ states('sensor.bomba_corrente_media_30d') }}A),
+          crescimento {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'crescimento_pct') }}.
+          Considere inspeção preventiva.
+
+    - service: persistent_notification.create
+      data:
+        title: "📈 Desgaste Emergente Detectado"
+        notification_id: pump_emerging_wear
+        message: >
+          **Tendência de crescimento na corrente sob carga**
+
+          • Média 7d: {{ states('sensor.bomba_corrente_media_7d') }}A
+          • Baseline 30d: {{ states('sensor.bomba_corrente_media_30d') }}A
+          • Crescimento: {{ state_attr('binary_sensor.bomba_desgaste_emergente', 'crescimento_pct') }}
+
+          **AÇÃO:** Planejar inspeção preventiva.
 
 # ================================================
 # 8. CIRCULATION FAILURE ALERT (Temperature) — v3.6.0

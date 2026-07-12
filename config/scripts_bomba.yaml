@@ -100,12 +100,13 @@ pump_emergency_reset:
           - timer.pump_deactivation_delay
           - timer.pump_safety_timeout
 
-    # Desabilita controles manuais
+    # Desabilita controles manuais e limpa o lockout de emergência (v3.7.0)
     - service: input_boolean.turn_off
       target:
         entity_id:
           - input_boolean.pump_manual_override
           - input_boolean.pump_manual_control
+          - input_boolean.pump_lockout
 
     - delay: "00:00:01"
 
