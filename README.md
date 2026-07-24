@@ -1,22 +1,28 @@
-> 📚 **Documentação migrada (2026-07-01)**: a doc viva deste projeto está no vault Obsidian do config — nota `Z:\docs\projetos$note.md` (ver `DOCS_NO_VAULT.md`). Os docs deste repo são históricos.
-
 <div align="center">
 
 # 💧 Hot Water Circulation Intelligence
 
-**Enterprise-grade pump monitoring. $50 smart plug. 100% native Home Assistant.**
+**Hard water leaves mineral scale inside the pump. Over weeks, the buildup makes it seize. This system hears it coming.**
 
-*Statistical calibration · Derivative-based inrush filtering · Predictive wear detection*
+*Predictive wear detection from electrical current · $50 smart plug · 100% native Home Assistant*
 
-[![Version](https://img.shields.io/badge/Version-3.5.2-success.svg)](https://github.com/silasgubi/ha-hot-water-circulation/releases/tag/v3.5.2)
+[![Version](https://img.shields.io/badge/Version-3.7.0-success.svg)](https://github.com/silasgubi/ha-hot-water-circulation/releases/tag/v3.7.0)
 [![Status](https://img.shields.io/badge/Status-Production-brightgreen.svg)](https://github.com/silasgubi/ha-hot-water-circulation)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.12+-blue.svg)](https://www.home-assistant.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Made in Brazil](https://img.shields.io/badge/Made%20in-Brazil%20🇧🇷-green.svg)](https://github.com/silasgubi)
 
-[What makes this different](#-what-makes-this-different) · [How it works](#-how-it-works) · [The data story](#-the-data-story) · [Quick Start](#-quick-start) · [Docs](#-docs)
+[The problem](#-the-problem-limescale-eats-pumps) · [What makes this different](#-what-makes-this-different) · [How it works](#-how-it-works) · [The data story](#-the-data-story) · [Quick Start](#-quick-start) · [Docs](#-docs)
 
 </div>
+
+---
+
+## 🪨 The problem: limescale eats pumps
+
+São Paulo's tap water is hard enough to leave a visible mineral crust inside a recirculation pump within months. That scale builds up on the impeller and bearings, and the motor has to push harder to compensate — until one day it just seizes. By the time you notice (a pump that won't start, or a burning smell), the damage is already done and a same-day repair is your only option.
+
+The insight behind this project: **a wearing motor draws more current, gradually, days before it fails.** By comparing a 7-day current average against a 30-day baseline, the system catches that drift and gives you a maintenance window instead of a breakdown.
 
 ---
 

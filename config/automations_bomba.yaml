@@ -494,7 +494,7 @@
 
     # v3.7.0: user-visible notifications — before this, the wear alert only
     # wrote to system_log/logbook and was effectively invisible.
-    - action: notify.mobile_app_iphone_do_silas
+    - action: notify.mobile_app_seu_celular
       data:
         title: "📈 Bomba: Desgaste Emergente"
         message: >
@@ -557,7 +557,7 @@
         volume_type: default
       action: script.nabu_speak
 
-    - action: notify.mobile_app_iphone_do_silas
+    - action: notify.mobile_app_seu_celular
       data:
         title: "⚠️ Bomba: Sem Circulação"
         message: >

@@ -34,7 +34,7 @@ Switching the Statistics source resets the 7d/30d means; they rebuild over 7/30 
 - **Configurable threshold helper** (`input_number.bomba_temp_funcionamento_minima`) — default 32°C, slider 25–45°C
 - **Multi-channel alert** (`bomba_alerta_falha_circulacao` automation #8):
   - TTS via `script.nabu_speak` (`volume_type: default`, respects quiet hours)
-  - Push notification iPhone (`notify.mobile_app_iphone_do_silas`, `interruption-level: time-sensitive`)
+  - Push notification (`notify.mobile_app_seu_celular`, `interruption-level: time-sensitive`)
   - Persistent notification with diagnostic info
   - Logbook + system_log at `warning` level
 - New file: `config/helpers_temperatura.yaml` with install instructions
